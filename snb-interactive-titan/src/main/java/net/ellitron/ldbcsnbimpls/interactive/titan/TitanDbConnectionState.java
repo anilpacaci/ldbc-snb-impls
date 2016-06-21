@@ -42,11 +42,18 @@ public class TitanDbConnectionState extends DbConnectionState {
     /*
      * Extract parameters from properties map.
      */
-    String cassandraLocator;
-    if (props.containsKey("cassandraLocator")) {
-      cassandraLocator = props.get("cassandraLocator");
+    String locator;
+    if (props.containsKey("locator")) {
+      locator = props.get("locator");
     } else {
-      cassandraLocator = "127.0.0.1";
+      locator = "127.0.0.1";
+    }
+
+    String backend;
+    if(props.containsKey("backend")) {
+      backend = props.get("backend");
+    } else {
+      backend = "cassandra";
     }
 
     String graphName;
@@ -56,9 +63,11 @@ public class TitanDbConnectionState extends DbConnectionState {
       graphName = "default";
     }
     
-    config.setProperty("storage.backend", "cassandra");
-    config.setProperty("storage.hostname", cassandraLocator);
-    config.setProperty("storage.cassandra.keyspace", graphName);
+    config.setProperty("storage.backend", backend);
+    config.setProperty("storage.hostname", locator);
+    if(backend.equals("cassandra")) {
+      config.setProperty("storage.cassandra.keyspace", graphName);
+    }
 
     client = TitanFactory.open(config);
   }

@@ -16,13 +16,9 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.titan;
 
-import com.thinkaurelius.titan.core.Cardinality;
-import com.thinkaurelius.titan.core.Multiplicity;
-import com.thinkaurelius.titan.core.PropertyKey;
+import com.thinkaurelius.titan.core.*;
 import com.thinkaurelius.titan.core.schema.SchemaAction;
 import com.thinkaurelius.titan.core.schema.TitanManagement;
-import com.thinkaurelius.titan.core.TitanFactory;
-import com.thinkaurelius.titan.core.TitanGraph;
 import com.thinkaurelius.titan.graphdb.database.management.ManagementSystem;
 
 import org.apache.commons.cli.CommandLine;
@@ -332,8 +328,10 @@ public class TitanGraphLoader {
 
   public static void main(String[] args) throws IOException {
     Options options = new Options();
-    options.addOption("C", "cassandraLocator", true, 
-        "IP address of a cassandra server.");
+    options.addOption("C", "locator", true,
+        "IP address of the server server.");
+    options.addOption(null, "backend", true,
+            "Backend storage service: {cassandra|hbase}");
     options.addOption(null, "batchSize", true, 
         "Number of nodes/edges to load in a single transaction.");
     options.addOption(null, "graphName", true, 
@@ -361,11 +359,19 @@ public class TitanGraphLoader {
     }
 
     // Required parameters.
-    String cassandraLocator;
-    if (cmd.hasOption("cassandraLocator")) {
-      cassandraLocator = cmd.getOptionValue("cassandraLocator");
+    String locator;
+    if (cmd.hasOption("locator")) {
+      locator = cmd.getOptionValue("locator");
     } else {
-      logger.log(Level.SEVERE, "Missing required argument: cassandraLocator");
+      logger.log(Level.SEVERE, "Missing required argument: locator");
+      return;
+    }
+
+    String backend;
+    if (cmd.hasOption("backend")) {
+      backend = cmd.getOptionValue("backend");
+    } else {
+      logger.log(Level.SEVERE, "Missing required argument: backend");
       return;
     }
 
@@ -400,14 +406,24 @@ public class TitanGraphLoader {
 
     // Create the Titan graph client instance with several configuration
     // parameters
-    TitanGraph graph = TitanFactory.build()
-      .set("storage.backend", "cassandra")
-      .set("storage.hostname", cassandraLocator)
-      .set("storage.cassandra.keyspace", graphName)
-      .set("storage.batch-loading", true)
-      .set("ids.block-size", 1000000)
+    BaseConfiguration config = new BaseConfiguration();
+    config.setProperty("storage.backend", backend);
+    config.setProperty("storage.hostname", locator);
+    if(backend.equals("cassandra")) {
+      config.setProperty("storage.cassandra.keyspace", graphName);
+    }
+//    TitanGraph graph = TitanFactory.build()
+//      .set("storage.backend", backend)
+//      .set("storage.hostname", locator)
+//      .set("storage.cassandra.keyspace", graphName)
+//      .set("storage.batch-loading+", true)
+//      .set("ids.block-size", 1000000)
       //                .set("schema.default", "none")
-      .open();
+//      .open();
+
+    TitanGraph graph = TitanFactory.open(config);
+
+      logger.log(Level.INFO, "Titan connection established");
 
     String vertexLabels[] = {  
       "person",
@@ -482,6 +498,7 @@ public class TitanGraphLoader {
         mgmt.makeVertexLabel(vLabel).make();
         mgmt.commit();
       }
+      logger.log(Level.INFO, "Vertex labels have been created");
 
       // Declare all edge labels.
       for( String eLabel : edgeLabels ) {
@@ -490,6 +507,7 @@ public class TitanGraphLoader {
         mgmt.makeEdgeLabel(eLabel).multiplicity(Multiplicity.SIMPLE).make();
         mgmt.commit();
       }
+      logger.log(Level.INFO, "Edge labels have been created");
 
       // Delcare all properties with Cardinality.SINGLE
       for ( String propKey : singleCardPropKeys ) {
@@ -520,11 +538,13 @@ public class TitanGraphLoader {
       mgmt.makePropertyKey("iid").dataType(String.class)
         .cardinality(Cardinality.SINGLE).make();     
       mgmt.commit();
+      logger.log(Level.INFO, "ID property iid created");
 
       mgmt = (ManagementSystem) graph.openManagement();
       PropertyKey iid = mgmt.getPropertyKey("iid");
       mgmt.buildIndex("byIid", Vertex.class).addKey(iid).buildCompositeIndex();
       mgmt.commit();
+      logger.log(Level.INFO, "Index on iid created");
 
       mgmt.awaitGraphIndexStatus(graph, "byIid").call();
 
@@ -550,7 +570,7 @@ public class TitanGraphLoader {
       "place_0_0.csv",
       "post_0_0.csv",
       "tag_0_0.csv",
-      "tagclass_0_0.csv" 
+      "tagclass_0_0.csv"
     };
 
     String propertiesFiles[] = {    

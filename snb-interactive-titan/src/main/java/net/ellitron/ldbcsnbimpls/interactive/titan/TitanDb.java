@@ -95,13 +95,13 @@ import java.util.Map;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for TitanDB.
- * Queries are executed against a running TitanDB-Cassandra cluster.
+ * Queries are executed against a running TitanDB-Cassandra|Hbase cluster.
  * Configuration parameters for this implementation (that are supplied via the
  * LDBC driver) are listed below.
  * <p>
  * Configuration Parameters:
  * <ul>
- * <li>cassandraLocator - IP address of a Cassandra node (default:
+ * <li>locator - IP address of a Storage node (default:
  * 127.0.0.1).</li>
  * <li>graphName - name of the graph stored in TitanDB against which to execute
  * queries (default: default).</li>
