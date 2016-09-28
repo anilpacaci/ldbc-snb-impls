@@ -72,6 +72,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -1450,8 +1451,16 @@ public class TitanDb extends Db {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-        Vertex message = g.V().has("iid",
-            makeIid(Entity.MESSAGE, operation.messageId())).next();
+        Vertex message;
+          GraphTraversal<Vertex, Vertex> t = g.V().has(Entity.POST.getName(), "iid",
+                  makeIid(Entity.POST, operation.messageId()));
+          if(t.hasNext()) {
+              // message is post
+              message = t.next();
+          } else {
+              message = g.V().has(Entity.COMMENT.getName(), "iid",
+                      makeIid(Entity.COMMENT, operation.messageId())).next();
+          }
 
         long creationDate =
             Long.decode(message.<String>property("creationDate").value());
@@ -1501,8 +1510,16 @@ public class TitanDb extends Db {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-        Vertex message = g.V().has("iid",
-            makeIid(Entity.MESSAGE, operation.messageId())).next();
+          Vertex message;
+          GraphTraversal<Vertex, Vertex> t = g.V().has(Entity.POST.getName(), "iid",
+                  makeIid(Entity.POST, operation.messageId()));
+          if(t.hasNext()) {
+              // message is post
+              message = t.next();
+          } else {
+              message = g.V().has(Entity.COMMENT.getName(), "iid",
+                      makeIid(Entity.COMMENT, operation.messageId())).next();
+          }
 
         Vertex creator =
             message.edges(Direction.OUT, "hasCreator").next().inVertex();
@@ -1557,8 +1574,16 @@ public class TitanDb extends Db {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-        Vertex vertex = g.V().has("iid",
-            makeIid(Entity.MESSAGE, operation.messageId())).next();
+          Vertex vertex;
+          GraphTraversal<Vertex, Vertex> t = g.V().has(Entity.POST.getName(), "iid",
+                  makeIid(Entity.POST, operation.messageId()));
+          if(t.hasNext()) {
+              // message is post
+              vertex = t.next();
+          } else {
+              vertex = g.V().has(Entity.COMMENT.getName(), "iid",
+                      makeIid(Entity.COMMENT, operation.messageId())).next();
+          }
 
         LdbcShortQuery6MessageForumResult result;
         while (true) {
@@ -1631,8 +1656,16 @@ public class TitanDb extends Db {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-        Vertex message = g.V().has("iid",
-            makeIid(Entity.MESSAGE, operation.messageId())).next();
+          Vertex message;
+          GraphTraversal<Vertex, Vertex> t = g.V().has(Entity.POST.getName(), "iid",
+                  makeIid(Entity.POST, operation.messageId()));
+          if(t.hasNext()) {
+              // message is post
+              message = t.next();
+          } else {
+              message = g.V().has(Entity.COMMENT.getName(), "iid",
+                      makeIid(Entity.COMMENT, operation.messageId())).next();
+          }
         Vertex messageAuthor =
             message.edges(Direction.OUT, "hasCreator").next().inVertex();
         long messageAuthorId = getSNBId(messageAuthor);
