@@ -84,24 +84,24 @@ public class DataFormatConverter {
    */
   private enum Node {
 
-    COMMENT("COMMENT_ID", "id", "Message;Comment", "comment",
+    COMMENT("COMMENT_ID", "iid", "comment", "comment",
         new String[]{"creationDate", "locationIP", "browserUsed", "content",
           "length"}),
-    FORUM("FORUM_ID", "id", "Forum", "forum",
+    FORUM("FORUM_ID", "iid", "forum", "forum",
         new String[]{"title", "creationDate"}),
-    ORGANISATION("ORGANISATION_ID", "id", "Organisation", "organisation",
+    ORGANISATION("ORGANISATION_ID", "iid", "organisation", "organisation",
         new String[]{"type", "name", "url"}),
-    PERSON("PERSON_ID", "id", "Person", "person",
+    PERSON("PERSON_ID", "iid", "person", "person",
         new String[]{"firstName", "lastName", "gender", "birthday",
           "creationDate", "locationIP", "browserUsed", "email", "speaks"}),
-    PLACE("PLACE_ID", "id", "Place", "place",
+    PLACE("PLACE_ID", "iid", "place", "place",
         new String[]{"name", "url", "type"}),
-    POST("POST_ID", "id", "Message;Post", "post",
+    POST("POST_ID", "iid", "post", "post",
         new String[]{"imageFile", "creationDate", "locationIP", "browserUsed",
           "language", "content", "length"}),
-    TAG("TAG_ID", "id", "Tag", "tag",
+    TAG("TAG_ID", "iid", "tag", "tag",
         new String[]{"name", "url"}),
-    TAGCLASS("TAGCLASS_ID", "id", "TagClass", "tagclass",
+    TAGCLASS("TAGCLASS_ID", "iid", "tagclass", "tagclass",
         new String[]{"name", "url"});
 
     /*
@@ -177,22 +177,22 @@ public class DataFormatConverter {
    */
   private enum Relationship {
 
-    CONTAINEROF("CONTAINER_OF", "containerOf", new String[]{}),
-    HASCREATOR("HAS_CREATOR", "hasCreator", new String[]{}),
-    HASINTEREST("HAS_INTEREST", "hasInterest", new String[]{}),
-    HASMEMBER("HAS_MEMBER", "hasMember", new String[]{"joinDate"}),
-    HASMODERATOR("HAS_MODERATOR", "hasModerator", new String[]{}),
-    HASTAG("HAS_TAG", "hasTag", new String[]{}),
-    HASTYPE("HAS_TYPE", "hasType", new String[]{}),
-    ISLOCATEDIN("IS_LOCATED_IN", "isLocatedIn", new String[]{}),
-    ISPARTOF("IS_PART_OF", "isPartOf", new String[]{}),
-    ISSUBCLASSOF("IS_SUBCLASS_OF", "isSubclassOf", new String[]{}),
-    KNOWS("KNOWS", "knows", new String[]{"creationDate"}),
-    LIKES("LIKES", "likes", new String[]{"creationDate"}),
-    REPLYOF("REPLY_OF", "replyOf", new String[]{}),
-    SPEAKS("SPEAKS", "speaks", new String[]{}),
-    STUDYAT("STUDY_AT", "studyAt", new String[]{"classYear"}),
-    WORKAT("WORK_AT", "workAt", new String[]{"workFrom"});
+    CONTAINEROF("containerOf", "containerOf", new String[]{}),
+    HASCREATOR("hasCreator", "hasCreator", new String[]{}),
+    HASINTEREST("hasInterest", "hasInterest", new String[]{}),
+    HASMEMBER("hasMember", "hasMember", new String[]{"joinDate"}),
+    HASMODERATOR("hasModerator", "hasModerator", new String[]{}),
+    HASTAG("hasTag", "hasTag", new String[]{}),
+    HASTYPE("hasType", "hasType", new String[]{}),
+    ISLOCATEDIN("isLocatedIn", "isLocatedIn", new String[]{}),
+    ISPARTOF("isPartOf", "isPartOf", new String[]{}),
+    ISSUBCLASSOF("isSubclassOf", "isSubclassOf", new String[]{}),
+    KNOWS("knows", "knows", new String[]{"creationDate"}),
+    LIKES("likes", "likes", new String[]{"creationDate"}),
+    REPLYOF("replyOf", "replyOf", new String[]{}),
+    SPEAKS("speaks", "speaks", new String[]{}),
+    STUDYAT("studyAt", "studyAt", new String[]{"classYear"}),
+    WORKAT("workAt", "workAt", new String[]{"workFrom"});
 
     /*
      * The type given to these nodes in Neo4j. We use the same types here as
