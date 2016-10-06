@@ -230,13 +230,13 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:Person {id:{1}})-[path:KNOWS*1..3]-(friend:Person)"
+          "   MATCH (:person {id:{1}})-[path:KNOWS*1..3]-(friend:person)"
           + " WHERE friend.firstName = {2}"
           + " WITH friend, min(length(path)) AS distance"
           + " ORDER BY distance ASC, friend.lastName ASC, toInt(friend.id) ASC"
           + " LIMIT {3}"
-          + " MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:Place)"
-          + " OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation)-[:IS_LOCATED_IN]->(uniCity:Place)"
+          + " MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:place)"
+          + " OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:organisation)-[:IS_LOCATED_IN]->(uniCity:place)"
           + " WITH"
           + "   friend,"
           + "   collect("
@@ -247,7 +247,7 @@ public class Neo4jDb extends Db {
           + "   ) AS unis,"
           + "   friendCity,"
           + "   distance"
-          + " OPTIONAL MATCH (friend)-[worksAt:WORK_AT]->(company:Organisation)-[:IS_LOCATED_IN]->(companyCountry:Place)"
+          + " OPTIONAL MATCH (friend)-[worksAt:WORK_AT]->(company:organisation)-[:IS_LOCATED_IN]->(companyCountry:place)"
           + " WITH"
           + "   friend,"
           + "   collect("
@@ -366,8 +366,8 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:Person {id:{1}})-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message)"
-          + " WHERE message.creationDate <= {2} AND (message:Post OR message:Comment)"
+          "   MATCH (:person {id:{1}})-[:KNOWS]-(friend:person)<-[:HAS_CREATOR]-(message)"
+          + " WHERE message.creationDate <= {2} AND (message:post OR message:comment)"
           + " RETURN"
           + "   friend.id AS personId,"
           + "   friend.firstName AS personFirstName,"
@@ -437,15 +437,15 @@ public class Neo4jDb extends Db {
           + ((long) operation.durationDays()) * 24l * 60l * 60l * 1000l;
 
       String statement =
-          "   MATCH (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)<-[:HAS_CREATOR]-(messageX),"
-          + " (messageX)-[:IS_LOCATED_IN]->(countryX:Place)"
+          "   MATCH (person:person {id:{1}})-[:KNOWS*1..2]-(friend:person)<-[:HAS_CREATOR]-(messageX),"
+          + " (messageX)-[:IS_LOCATED_IN]->(countryX:place)"
           + " WHERE"
           + "   not(person=friend)"
           + "   AND not((friend)-[:IS_LOCATED_IN]->()-[:IS_PART_OF]->(countryX))"
           + "   AND countryX.name={2} AND messageX.creationDate>={4}"
           + "   AND messageX.creationDate<{5}"
           + " WITH friend, count(DISTINCT messageX) AS xCount"
-          + " MATCH (friend)<-[:HAS_CREATOR]-(messageY)-[:IS_LOCATED_IN]->(countryY:Place)"
+          + " MATCH (friend)<-[:HAS_CREATOR]-(messageY)-[:IS_LOCATED_IN]->(countryY:place)"
           + " WHERE"
           + "   countryY.name={3}"
           + "   AND not((friend)-[:IS_LOCATED_IN]->()-[:IS_PART_OF]->(countryY))"
@@ -525,9 +525,9 @@ public class Neo4jDb extends Db {
           + ((long) operation.durationDays()) * 24l * 60l * 60l * 1000l;
 
       String statement =
-          "   MATCH (person:Person {id:{1}})-[:KNOWS]-(:Person)<-[:HAS_CREATOR]-(post:Post)-[:HAS_TAG]->(tag:Tag)"
+          "   MATCH (person:person {id:{1}})-[:KNOWS]-(:person)<-[:HAS_CREATOR]-(post:post)-[:HAS_TAG]->(tag:tag)"
           + " WHERE post.creationDate >= {2} AND post.creationDate < {3}"
-          + " OPTIONAL MATCH (tag)<-[:HAS_TAG]-(oldPost:Post)-[:HAS_CREATOR]->(:Person)-[:KNOWS]-(person)"
+          + " OPTIONAL MATCH (tag)<-[:HAS_TAG]-(oldPost:post)-[:HAS_CREATOR]->(:person)-[:KNOWS]-(person)"
           + " WHERE oldPost.creationDate < {2}"
           + " WITH tag, post, length(collect(oldPost)) AS oldPostCount"
           + " WHERE oldPostCount=0"
@@ -585,10 +585,10 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)<-[membership:HAS_MEMBER]-(forum:Forum)"
+          "   MATCH (person:person {id:{1}})-[:KNOWS*1..2]-(friend:person)<-[membership:HAS_MEMBER]-(forum:forum)"
           + " WHERE membership.joinDate>{2} AND not(person=friend)"
           + " WITH DISTINCT friend, forum"
-          + " OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:Post)<-[:CONTAINER_OF]-(forum)"
+          + " OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:post)<-[:CONTAINER_OF]-(forum)"
           + " WITH forum, count(post) AS postCount"
           + " RETURN"
           + "   forum.title AS forumName,"
@@ -643,13 +643,13 @@ public class Neo4jDb extends Db {
 
       String statement =
           "   MATCH"
-          + "   (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person),"
-          + "   (friend)<-[:HAS_CREATOR]-(friendPost:Post)-[:HAS_TAG]->(knownTag:Tag {name:{2}})"
+          + "   (person:person {id:{1}})-[:KNOWS*1..2]-(friend:person),"
+          + "   (friend)<-[:HAS_CREATOR]-(friendPost:post)-[:HAS_TAG]->(knownTag:tag {name:{2}})"
           + " WHERE not(person=friend)"
-          + " MATCH (friendPost)-[:HAS_TAG]->(commonTag:Tag)"
+          + " MATCH (friendPost)-[:HAS_TAG]->(commonTag:tag)"
           + " WHERE not(commonTag=knownTag)"
           + " WITH DISTINCT commonTag, knownTag, friend"
-          + " MATCH (commonTag)<-[:HAS_TAG]-(commonPost:Post)-[:HAS_TAG]->(knownTag)"
+          + " MATCH (commonTag)<-[:HAS_TAG]-(commonPost:post)-[:HAS_TAG]->(knownTag)"
           + " WHERE (commonPost)-[:HAS_CREATOR]->(friend)"
           + " RETURN"
           + "   commonTag.name AS tagName,"
@@ -706,7 +706,7 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person:Person {id:{1}})<-[:HAS_CREATOR]-(message)<-[like:LIKES]-(liker:Person)"
+          "   MATCH (person:person {id:{1}})<-[:HAS_CREATOR]-(message)<-[like:LIKES]-(liker:person)"
           + " WITH liker, message, like.creationDate AS likeTime, person"
           + " ORDER BY likeTime DESC, toInt(message.id) ASC"
           + " WITH"
@@ -779,7 +779,7 @@ public class Neo4jDb extends Db {
 
       String statement =
           "   MATCH"
-          + "   (start:Person {id:{1}})<-[:HAS_CREATOR]-()<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)"
+          + "   (start:person {id:{1}})<-[:HAS_CREATOR]-()<-[:REPLY_OF]-(comment:comment)-[:HAS_CREATOR]->(person:person)"
           + " RETURN"
           + "   person.id AS personId,"
           + "   person.firstName AS personFirstName,"
@@ -839,7 +839,7 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)<-[:HAS_CREATOR]-(message)"
+          "   MATCH (:person {id:{1}})-[:KNOWS*1..2]-(friend:person)<-[:HAS_CREATOR]-(message)"
           + " WHERE message.creationDate < {2}"
           + " RETURN DISTINCT"
           + "   friend.id AS personId,"
@@ -913,20 +913,20 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person:Person {id:{1}})-[:KNOWS*2..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)"
+          "   MATCH (person:person {id:{1}})-[:KNOWS*2..2]-(friend:person)-[:IS_LOCATED_IN]->(city:place)"
           + " WHERE "
           + "   ((friend.birthday_month = {2} AND friend.birthday_day >= 21) OR"
           + "   (friend.birthday_month = ({2}%12)+1 AND friend.birthday_day < 22))"
           + "   AND not(friend=person)"
           + "   AND not((friend)-[:KNOWS]-(person))"
           + " WITH DISTINCT friend, city, person"
-          + " OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:Post)"
+          + " OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:post)"
           + " WITH friend, city, collect(post) AS posts, person"
           + " WITH "
           + "   friend,"
           + "   city,"
           + "   length(posts) AS postCount,"
-          + "   length([p IN posts WHERE (p)-[:HAS_TAG]->(:Tag)<-[:HAS_INTEREST]-(person)]) AS commonPostCount"
+          + "   length([p IN posts WHERE (p)-[:HAS_TAG]->(:tag)<-[:HAS_INTEREST]-(person)]) AS commonPostCount"
           + " RETURN"
           + "   friend.id AS personId,"
           + "   friend.firstName AS personFirstName,"
@@ -987,10 +987,10 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)"
+          "   MATCH (person:person {id:{1}})-[:KNOWS*1..2]-(friend:person)"
           + " WHERE not(person=friend)"
           + " WITH DISTINCT friend"
-          + " MATCH (friend)-[worksAt:WORK_AT]->(company:Organisation)-[:IS_LOCATED_IN]->(:Place {name:{3}})"
+          + " MATCH (friend)-[worksAt:WORK_AT]->(company:organisation)-[:IS_LOCATED_IN]->(:place {name:{3}})"
           + " WHERE worksAt.workFrom < {2}"
           + " RETURN"
           + "   friend.id AS friendId,"
@@ -1054,10 +1054,10 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:Person {id:{1}})-[:KNOWS]-(friend:Person)"
+          "   MATCH (:person {id:{1}})-[:KNOWS]-(friend:person)"
           + " OPTIONAL MATCH"
-          + "   (friend)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(:Post)-[:HAS_TAG]->(tag:Tag),"
-          + "   (tag)-[:HAS_TYPE]->(tagClass:TagClass)-[:IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)"
+          + "   (friend)<-[:HAS_CREATOR]-(comment:comment)-[:REPLY_OF]->(:post)-[:HAS_TAG]->(tag:tag),"
+          + "   (tag)-[:HAS_TYPE]->(tagClass:tagclass)-[:IS_SUBCLASS_OF*0..]->(baseTagClass:tagclass)"
           + " WHERE tagClass.name = {2} OR baseTagClass.name = {2}"
           + " RETURN"
           + "   friend.id AS friendId,"
@@ -1121,7 +1121,7 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person1:Person {id:{1}}), (person2:Person {id:{2}})"
+          "   MATCH (person1:person {id:{1}}), (person2:person {id:{2}})"
           + " OPTIONAL MATCH path = shortestPath((person1)-[:KNOWS*..15]-(person2))"
           + " RETURN"
           + " CASE path IS NULL"
@@ -1172,11 +1172,11 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH path = allShortestPaths((person1:Person {id:{1}})-[:KNOWS*..15]-(person2:Person {id:{2}}))"
+          "   MATCH path = allShortestPaths((person1:person {id:{1}})-[:KNOWS*..15]-(person2:person {id:{2}}))"
           + " WITH nodes(path) AS pathNodes"
           + " RETURN"
           + "   extract(n IN pathNodes | n.id) AS pathNodeIds,"
-          + "   reduce(weight=0.0, idx IN range(1,size(pathNodes)-1) | extract(prev IN [pathNodes[idx-1]] | extract(curr IN [pathNodes[idx]] | weight + length((curr)<-[:HAS_CREATOR]-(:Comment)-[:REPLY_OF]->(:Post)-[:HAS_CREATOR]->(prev))*1.0 + length((prev)<-[:HAS_CREATOR]-(:Comment)-[:REPLY_OF]->(:Post)-[:HAS_CREATOR]->(curr))*1.0 + length((prev)-[:HAS_CREATOR]-(:Comment)-[:REPLY_OF]-(:Comment)-[:HAS_CREATOR]-(curr))*0.5) )[0][0]) AS weight"
+          + "   reduce(weight=0.0, idx IN range(1,size(pathNodes)-1) | extract(prev IN [pathNodes[idx-1]] | extract(curr IN [pathNodes[idx]] | weight + length((curr)<-[:HAS_CREATOR]-(:comment)-[:REPLY_OF]->(:post)-[:HAS_CREATOR]->(prev))*1.0 + length((prev)<-[:HAS_CREATOR]-(:comment)-[:REPLY_OF]->(:post)-[:HAS_CREATOR]->(curr))*1.0 + length((prev)-[:HAS_CREATOR]-(:comment)-[:REPLY_OF]-(:comment)-[:HAS_CREATOR]-(curr))*0.5) )[0][0]) AS weight"
           + " ORDER BY weight DESC";
       String parameters = "{ "
           + "\"1\" : \"" + operation.person1Id() + "\", "
@@ -1231,7 +1231,7 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (n:Person {id:{id}})-[:IS_LOCATED_IN]-(p:Place)"
+          "   MATCH (n:person {id:{id}})-[:IS_LOCATED_IN]-(p:place)"
           + " RETURN"
           + "   n.firstName AS firstName,"
           + "   n.lastName AS lastName,"
@@ -1290,7 +1290,7 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:Person {id:{id}})<-[:HAS_CREATOR]-(m)-[:REPLY_OF*0..]->(p:Post)"
+          "   MATCH (:person {id:{id}})<-[:HAS_CREATOR]-(m)-[:REPLY_OF*0..]->(p:post)"
           + " MATCH (p)-[:HAS_CREATOR]->(c)"
           + " RETURN"
           + "   m.id as messageId,"
@@ -1350,7 +1350,7 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (n:Person {id:{id}})-[r:KNOWS]-(friend)"
+          "   MATCH (n:person {id:{id}})-[r:KNOWS]-(friend)"
           + " RETURN"
           + "   friend.id AS personId,"
           + "   friend.firstName AS firstName,"
@@ -1396,13 +1396,21 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (m:Message {id:{id}})"
+          "   MATCH (m:post {id:{id}})"
           + " RETURN"
           + "   CASE has(m.content)"
           + "     WHEN true THEN m.content"
           + "     ELSE m.imageFile"
           + "   END AS messageContent,"
-          + "   m.creationDate as messageCreationDate";
+          + "   m.creationDate as messageCreationDate"
+          + " UNION "
+          + " MATCH (m:comment {id:{id}})"
+          + " RETURN"
+          + "   CASE has(m.content)"
+          + "     WHEN true THEN m.content"
+          + "     ELSE m.imageFile"
+          + "   END AS messageContent,"
+          + "   m.creationDate as messageCreationDate"    ;
       String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
 
       // Execute the query and get the results.
@@ -1441,11 +1449,20 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (m:Message {id:{id}})-[:HAS_CREATOR]->(p:Person)"
+          "   MATCH (m:post {id:{id}})-[:HAS_CREATOR]->(p:person)"
+          + " RETURN"
+          + "   p.id AS personId,"
+          + "   p.firstName AS firstName,"
+          + "   p.lastName AS lastName"
+          + " UNION "
+          + " MATCH (m:comment {id:{id}})-[:HAS_CREATOR]->(p:person)"
           + " RETURN"
           + "   p.id AS personId,"
           + "   p.firstName AS firstName,"
           + "   p.lastName AS lastName";
+
+
+
       String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
 
       // Execute the query and get the results.
@@ -1488,7 +1505,15 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (m:Message {id:{id}})-[:REPLY_OF*0..]->(p:Post)<-[:CONTAINER_OF]-(f:Forum)-[:HAS_MODERATOR]->(mod:Person)"
+          "   MATCH (m:post {id:{id}})-[:REPLY_OF*0..]->(p:post)<-[:CONTAINER_OF]-(f:forum)-[:HAS_MODERATOR]->(mod:person)"
+          + " RETURN"
+          + "   f.id AS forumId,"
+          + "   f.title AS forumTitle,"
+          + "   mod.id AS moderatorId,"
+          + "   mod.firstName AS moderatorFirstName,"
+          + "   mod.lastName AS moderatorLastName"
+          + " UNION "
+          + " MATCH (m:comment {id:{id}})-[:REPLY_OF*0..]->(p:post)<-[:CONTAINER_OF]-(f:forum)-[:HAS_MODERATOR]->(mod:person)"
           + " RETURN"
           + "   f.id AS forumId,"
           + "   f.title AS forumTitle,"
@@ -1540,8 +1565,23 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (m:Message {id:{id}})<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)"
-          + " OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:Person)-[r:KNOWS]-(p)"
+          "   MATCH (m:post {id:{id}})<-[:REPLY_OF]-(c:comment)-[:HAS_CREATOR]->(p:person)"
+          + " OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:person)-[r:KNOWS]-(p)"
+          + " RETURN"
+          + "   c.id AS commentId,"
+          + "   c.content AS commentContent,"
+          + "   c.creationDate AS commentCreationDate,"
+          + "   p.id AS replyAuthorId,"
+          + "   p.firstName AS replyAuthorFirstName,"
+          + "   p.lastName AS replyAuthorLastName,"
+          + "   CASE r"
+          + "     WHEN null THEN false"
+          + "     ELSE true"
+          + "   END AS replyAuthorKnowsOriginalMessageAuthor"
+          + " ORDER BY commentCreationDate DESC, toInt(replyAuthorId) ASC"
+          + " UNION "
+          + " MATCH (m:comment {id:{id}})<-[:REPLY_OF]-(c:comment)-[:HAS_CREATOR]->(p:person)"
+          + " OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:person)-[r:KNOWS]-(p)"
           + " RETURN"
           + "   c.id AS commentId,"
           + "   c.content AS commentContent,"
@@ -1637,7 +1677,7 @@ public class Neo4jDb extends Db {
       statement =
           "   MATCH (p:person {id:{personId}}),"
           + "       (c:place {id:{cityId}})"
-          + " OPTIONAL MATCH (t:Tag)"
+          + " OPTIONAL MATCH (t:tag)"
           + " WHERE t.id IN {tagIds}"
           + " WITH p, c, collect(t) AS tagSet"
           + " CREATE (p)-[:IS_LOCATED_IN]->(c)"
@@ -1831,7 +1871,7 @@ public class Neo4jDb extends Db {
       statement =
           "   MATCH (f:forum {id:{forumId}}),"
           + "       (p:person {id:{moderatorId}})"
-          + " OPTIONAL MATCH (t:Tag)"
+          + " OPTIONAL MATCH (t:tag)"
           + " WHERE t.id IN {tagIds}"
           + " WITH f, p, collect(t) as tagSet"
           + " CREATE (f)-[:HAS_MODERATOR]->(p)"
@@ -1936,7 +1976,7 @@ public class Neo4jDb extends Db {
           + "       (p:person {id:{authorId}}),"
           + "       (f:forum {id:{forumId}}),"
           + "       (c:place {id:{countryId}})"
-          + " OPTIONAL MATCH (t:Tag)"
+          + " OPTIONAL MATCH (t:tag)"
           + " WHERE t.id IN {tagIds}"
           + " WITH m, p, f, c, collect(t) as tagSet"
           + " CREATE (m)-[:HAS_CREATOR]->(p),"
@@ -1990,6 +2030,14 @@ public class Neo4jDb extends Db {
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
 
+      // @apacaci: message lable removed, so need to distinguish between different message types
+      String replyOfLabel;
+      if (operation.replyToCommentId() != -1) {
+        replyOfLabel = "comment";
+      } else {
+        replyOfLabel = "post";
+      }
+
       Long replyOfId;
       if (operation.replyToCommentId() != -1) {
         replyOfId = operation.replyToCommentId();
@@ -2001,9 +2049,9 @@ public class Neo4jDb extends Db {
       statement =
           "   MATCH (m:comment {id:{commentId}}),"
           + "       (p:person {id:{authorId}}),"
-          + "       (r:message {id:{replyOfId}}),"
+          + "       (r:{replyOfLabel} {id:{replyOfId}}),"
           + "       (c:place {id:{countryId}})"
-          + " OPTIONAL MATCH (t:Tag)"
+          + " OPTIONAL MATCH (t:tag)"
           + " WHERE t.id IN {tagIds}"
           + " WITH m, p, r, c, collect(t) as tagSet"
           + " CREATE (m)-[:HAS_CREATOR]->(p),"
@@ -2015,7 +2063,8 @@ public class Neo4jDb extends Db {
           + " \"authorId\" : \"" + operation.authorPersonId() + "\","
           + " \"replyOfId\" : \"" + replyOfId + "\","
           + " \"countryId\" : \"" + operation.countryId() + "\","
-          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds())
+          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds()) + "\","
+          + " \"replyOfLabel\" : " + replyOfLabel
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
