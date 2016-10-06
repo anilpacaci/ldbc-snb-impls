@@ -1615,7 +1615,7 @@ public class Neo4jDb extends Db {
 
       // Create the person node.
       String statement =
-          "   CREATE (p:Person {props})";
+          "   CREATE (p:person {props})";
       String parameters = "{ \"props\" : {"
           + " \"id\" : \"" + operation.personId() + "\","
           + " \"firstName\" : \"" + operation.personFirstName() + "\","
@@ -1635,8 +1635,8 @@ public class Neo4jDb extends Db {
 
       // Add isLocatedIn and hasInterest relationships.
       statement =
-          "   MATCH (p:Person {id:{personId}}),"
-          + "       (c:Place {id:{cityId}})"
+          "   MATCH (p:person {id:{personId}}),"
+          + "       (c:place {id:{cityId}})"
           + " OPTIONAL MATCH (t:Tag)"
           + " WHERE t.id IN {tagIds}"
           + " WITH p, c, collect(t) AS tagSet"
@@ -1656,7 +1656,7 @@ public class Neo4jDb extends Db {
         StringBuilder createBldr = new StringBuilder();
         StringBuilder paramBldr = new StringBuilder();
 
-        matchBldr.append("MATCH (p:Person {id:{personId}}), ");
+        matchBldr.append("MATCH (p:person {id:{personId}}), ");
         createBldr.append("CREATE ");
         paramBldr.append("{\"personId\" : \"" + operation.personId() + "\", ");
 
@@ -1668,7 +1668,7 @@ public class Neo4jDb extends Db {
             paramBldr.append(", ");
           }
           matchBldr.append(
-              String.format("(u%d:Organisation {id:{uId%d}})", i, i));
+              String.format("(u%d:organisation {id:{uId%d}})", i, i));
           createBldr.append(
               String.format("(p)-[:STUDY_AT {classYear:{cY%d}}]->(u%d)", i, i));
           paramBldr.append(
@@ -1692,7 +1692,7 @@ public class Neo4jDb extends Db {
         StringBuilder createBldr = new StringBuilder();
         StringBuilder paramBldr = new StringBuilder();
 
-        matchBldr.append("MATCH (p:Person {id:{personId}}), ");
+        matchBldr.append("MATCH (p:person {id:{personId}}), ");
         createBldr.append("CREATE ");
         paramBldr.append("{\"personId\" : \"" + operation.personId() + "\", ");
 
@@ -1704,7 +1704,7 @@ public class Neo4jDb extends Db {
             paramBldr.append(", ");
           }
           matchBldr.append(
-              String.format("(c%d:Organisation {id:{cId%d}})", i, i));
+              String.format("(c%d:organisation {id:{cId%d}})", i, i));
           createBldr.append(
               String.format("(p)-[:WORK_AT {workFrom:{wF%d}}]->(c%d)", i, i));
           paramBldr.append(
@@ -1746,8 +1746,8 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (p:Person {id:{personId}}),"
-          + "       (m:Post {id:{postId}})"
+          "   MATCH (p:person {id:{personId}}),"
+          + "       (m:post {id:{postId}})"
           + " CREATE (p)-[:LIKES {creationDate:{creationDate}}]->(m)";
       String parameters = "{ "
           + " \"personId\" : \"" + operation.personId() + "\","
@@ -1782,8 +1782,8 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (p:Person {id:{personId}}),"
-          + "       (m:Comment {id:{commentId}})"
+          "   MATCH (p:person {id:{personId}}),"
+          + "       (m:comment {id:{commentId}})"
           + " CREATE (p)-[:LIKES {creationDate:{creationDate}}]->(m)";
       String parameters = "{ "
           + " \"personId\" : \"" + operation.personId() + "\","
@@ -1818,7 +1818,7 @@ public class Neo4jDb extends Db {
 
       // Create the forum node.
       String statement =
-          "   CREATE (f:Forum {props})";
+          "   CREATE (f:forum {props})";
       String parameters = "{ \"props\" : {"
           + " \"id\" : \"" + operation.forumId() + "\","
           + " \"title\" : \"" + operation.forumTitle() + "\","
@@ -1829,8 +1829,8 @@ public class Neo4jDb extends Db {
 
       // Add hasModerator and hasTag relationships.
       statement =
-          "   MATCH (f:Forum {id:{forumId}}),"
-          + "       (p:Person {id:{moderatorId}})"
+          "   MATCH (f:forum {id:{forumId}}),"
+          + "       (p:person {id:{moderatorId}})"
           + " OPTIONAL MATCH (t:Tag)"
           + " WHERE t.id IN {tagIds}"
           + " WITH f, p, collect(t) as tagSet"
@@ -1868,8 +1868,8 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (f:Forum {id:{forumId}}),"
-          + "       (p:Person {id:{personId}})"
+          "   MATCH (f:forum {id:{forumId}}),"
+          + "       (p:person {id:{personId}})"
           + " CREATE (f)-[:HAS_MEMBER {joinDate:{joinDate}}]->(p)";
       String parameters = "{ "
           + " \"forumId\" : \"" + operation.forumId() + "\","
@@ -1904,7 +1904,7 @@ public class Neo4jDb extends Db {
 
       // Create the post node.
       String statement =
-          "   CREATE (m:Post:Message {props})";
+          "   CREATE (m:post {props})";
       String parameters;
       if (operation.imageFile().length() > 0) {
         parameters = "{ \"props\" : {"
@@ -1932,10 +1932,10 @@ public class Neo4jDb extends Db {
 
       // Add hasCreator, containerOf, isLocatedIn, and hasTag relationships.
       statement =
-          "   MATCH (m:Post {id:{postId}}),"
-          + "       (p:Person {id:{authorId}}),"
-          + "       (f:Forum {id:{forumId}}),"
-          + "       (c:Place {id:{countryId}})"
+          "   MATCH (m:post {id:{postId}}),"
+          + "       (p:person {id:{authorId}}),"
+          + "       (f:forum {id:{forumId}}),"
+          + "       (c:place {id:{countryId}})"
           + " OPTIONAL MATCH (t:Tag)"
           + " WHERE t.id IN {tagIds}"
           + " WITH m, p, f, c, collect(t) as tagSet"
@@ -1978,7 +1978,7 @@ public class Neo4jDb extends Db {
 
       // Create the comment node.
       String statement =
-          "   CREATE (c:Comment:Message {props})";
+          "   CREATE (c:comment {props})";
       String parameters = "{ \"props\" : {"
           + " \"id\" : \"" + operation.commentId() + "\","
           + " \"creationDate\" : " + operation.creationDate().getTime() + ","
@@ -1999,10 +1999,10 @@ public class Neo4jDb extends Db {
 
       // Add hasCreator, containerOf, isLocatedIn, and hasTag relationships.
       statement =
-          "   MATCH (m:Comment {id:{commentId}}),"
-          + "       (p:Person {id:{authorId}}),"
-          + "       (r:Message {id:{replyOfId}}),"
-          + "       (c:Place {id:{countryId}})"
+          "   MATCH (m:comment {id:{commentId}}),"
+          + "       (p:person {id:{authorId}}),"
+          + "       (r:message {id:{replyOfId}}),"
+          + "       (c:place {id:{countryId}})"
           + " OPTIONAL MATCH (t:Tag)"
           + " WHERE t.id IN {tagIds}"
           + " WITH m, p, r, c, collect(t) as tagSet"
@@ -2044,8 +2044,8 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (p1:Person {id:{person1Id}}),"
-          + "       (p2:Person {id:{person2Id}})"
+          "   MATCH (p1:person {id:{person1Id}}),"
+          + "       (p2:person {id:{person2Id}})"
           + " CREATE (p1)-[:KNOWS {creationDate:{creationDate}}]->(p2)";
       String parameters = "{ "
           + " \"person1Id\" : \"" + operation.person1Id() + "\","
