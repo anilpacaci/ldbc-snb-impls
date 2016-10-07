@@ -16,6 +16,7 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.neo4j;
 
+import net.ellitron.ldbcsnbimpls.interactive.core.Entity;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.util.DbHelper;
 
 import com.ldbc.driver.control.LoggingService;
@@ -230,13 +231,13 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:person {id:{1}})-[path:KNOWS*1..3]-(friend:person)"
+          "   MATCH (:person {iid:{1}})-[path:knows*1..3]-(friend:person)"
           + " WHERE friend.firstName = {2}"
           + " WITH friend, min(length(path)) AS distance"
-          + " ORDER BY distance ASC, friend.lastName ASC, toInt(friend.id) ASC"
+          + " ORDER BY distance ASC, friend.lastName ASC, toInt(friend.iid) ASC"
           + " LIMIT {3}"
-          + " MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:place)"
-          + " OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:organisation)-[:IS_LOCATED_IN]->(uniCity:place)"
+          + " MATCH (friend)-[:isLocatedIn]->(friendCity:place)"
+          + " OPTIONAL MATCH (friend)-[studyAt:studyAt]->(uni:organisation)-[:isLocatedIn]->(uniCity:place)"
           + " WITH"
           + "   friend,"
           + "   collect("
@@ -247,7 +248,7 @@ public class Neo4jDb extends Db {
           + "   ) AS unis,"
           + "   friendCity,"
           + "   distance"
-          + " OPTIONAL MATCH (friend)-[worksAt:WORK_AT]->(company:organisation)-[:IS_LOCATED_IN]->(companyCountry:place)"
+          + " OPTIONAL MATCH (friend)-[worksAt:workAt]->(company:organisation)-[:isLocatedIn]->(companyCountry:place)"
           + " WITH"
           + "   friend,"
           + "   collect("
@@ -260,7 +261,7 @@ public class Neo4jDb extends Db {
           + "   friendCity,"
           + "   distance"
           + " RETURN"
-          + "   friend.id AS id,"
+          + "   friend.iid AS id,"
           + "   friend.lastName AS lastName,"
           + "   distance,"
           + "   friend.birthday AS birthday,"
@@ -273,10 +274,10 @@ public class Neo4jDb extends Db {
           + "   friendCity.name AS cityName,"
           + "   unis,"
           + "   companies"
-          + " ORDER BY distance ASC, friend.lastName ASC, toInt(friend.id) ASC"
+          + " ORDER BY distance ASC, friend.lastName ASC, toInt(friend.iid) ASC"
           + " LIMIT {3}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : \"" + operation.firstName() + "\", "
           + "\"3\" : " + operation.limit()
           + " }";
@@ -325,7 +326,7 @@ public class Neo4jDb extends Db {
 
         resultList.add(
             new LdbcQuery1Result(
-                Long.decode(row.getString(0)),
+            	DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getInt(2),
                 row.getJsonNumber(3).longValue(),
@@ -366,13 +367,13 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:person {id:{1}})-[:KNOWS]-(friend:person)<-[:HAS_CREATOR]-(message)"
+          "   MATCH (:person {iid:{1}})-[:knows]-(friend:person)<-[:hasCreator]-(message)"
           + " WHERE message.creationDate <= {2} AND (message:post OR message:comment)"
           + " RETURN"
-          + "   friend.id AS personId,"
+          + "   friend.iid AS personId,"
           + "   friend.firstName AS personFirstName,"
           + "   friend.lastName AS personLastName,"
-          + "   message.id AS messageId,"
+          + "   message.iid AS messageId,"
           + "   CASE has(message.content)"
           + "     WHEN true THEN message.content"
           + "     ELSE message.imageFile"
@@ -381,7 +382,7 @@ public class Neo4jDb extends Db {
           + " ORDER BY messageDate DESC, toInt(messageId) ASC"
           + " LIMIT {3}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : " + operation.maxDate().getTime() + ", "
           + "\"3\" : " + operation.limit()
           + " }";
@@ -396,10 +397,10 @@ public class Neo4jDb extends Db {
 
         resultList.add(
             new LdbcQuery2Result(
-                Long.decode(row.getString(0)),
+                DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getString(2),
-                Long.decode(row.getString(3)),
+                DbHelper.getSNBId(row.getString(3)),
                 row.getString(4),
                 row.getJsonNumber(5).longValue()));
       }
@@ -437,22 +438,22 @@ public class Neo4jDb extends Db {
           + ((long) operation.durationDays()) * 24l * 60l * 60l * 1000l;
 
       String statement =
-          "   MATCH (person:person {id:{1}})-[:KNOWS*1..2]-(friend:person)<-[:HAS_CREATOR]-(messageX),"
-          + " (messageX)-[:IS_LOCATED_IN]->(countryX:place)"
+          "   MATCH (person:person {iid:{1}})-[:knows*1..2]-(friend:person)<-[:hasCreator]-(messageX),"
+          + " (messageX)-[:isLocatedIn]->(countryX:place)"
           + " WHERE"
           + "   not(person=friend)"
-          + "   AND not((friend)-[:IS_LOCATED_IN]->()-[:IS_PART_OF]->(countryX))"
+          + "   AND not((friend)-[:isLocatedIn]->()-[:isPartOf]->(countryX))"
           + "   AND countryX.name={2} AND messageX.creationDate>={4}"
           + "   AND messageX.creationDate<{5}"
           + " WITH friend, count(DISTINCT messageX) AS xCount"
-          + " MATCH (friend)<-[:HAS_CREATOR]-(messageY)-[:IS_LOCATED_IN]->(countryY:place)"
+          + " MATCH (friend)<-[:hasCreator]-(messageY)-[:isLocatedIn]->(countryY:place)"
           + " WHERE"
           + "   countryY.name={3}"
-          + "   AND not((friend)-[:IS_LOCATED_IN]->()-[:IS_PART_OF]->(countryY))"
+          + "   AND not((friend)-[:isLocatedIn]->()-[:isPartOf]->(countryY))"
           + "   AND messageY.creationDate>={4}"
           + "   AND messageY.creationDate<{5}"
           + " WITH"
-          + "   friend.id AS friendId,"
+          + "   friend.iid AS friendId,"
           + "   friend.firstName AS friendFirstName,"
           + "   friend.lastName AS friendLastName,"
           + "   xCount,"
@@ -467,7 +468,7 @@ public class Neo4jDb extends Db {
           + " ORDER BY xyCount DESC, toInt(friendId) ASC"
           + " LIMIT {6}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : \"" + operation.countryXName() + "\", "
           + "\"3\" : \"" + operation.countryYName() + "\", "
           + "\"4\" : " + periodStart + ", "
@@ -485,7 +486,7 @@ public class Neo4jDb extends Db {
 
         resultList.add(
             new LdbcQuery3Result(
-                Long.decode(row.getString(0)),
+                DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getString(2),
                 row.getInt(3),
@@ -525,9 +526,9 @@ public class Neo4jDb extends Db {
           + ((long) operation.durationDays()) * 24l * 60l * 60l * 1000l;
 
       String statement =
-          "   MATCH (person:person {id:{1}})-[:KNOWS]-(:person)<-[:HAS_CREATOR]-(post:post)-[:HAS_TAG]->(tag:tag)"
+          "   MATCH (person:person {iid:{1}})-[:knows]-(:person)<-[:hasCreator]-(post:post)-[:hasTag]->(tag:tag)"
           + " WHERE post.creationDate >= {2} AND post.creationDate < {3}"
-          + " OPTIONAL MATCH (tag)<-[:HAS_TAG]-(oldPost:post)-[:HAS_CREATOR]->(:person)-[:KNOWS]-(person)"
+          + " OPTIONAL MATCH (tag)<-[:hasTag]-(oldPost:post)-[:hasCreator]->(:person)-[:knows]-(person)"
           + " WHERE oldPost.creationDate < {2}"
           + " WITH tag, post, length(collect(oldPost)) AS oldPostCount"
           + " WHERE oldPostCount=0"
@@ -537,7 +538,7 @@ public class Neo4jDb extends Db {
           + " ORDER BY postCount DESC, tagName ASC"
           + " LIMIT {4}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : " + periodStart + ", "
           + "\"3\" : " + periodEnd + ", "
           + "\"4\" : " + operation.limit()
@@ -585,18 +586,18 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person:person {id:{1}})-[:KNOWS*1..2]-(friend:person)<-[membership:HAS_MEMBER]-(forum:forum)"
+          "   MATCH (person:person {iid:{1}})-[:knows*1..2]-(friend:person)<-[membership:hasMember]-(forum:forum)"
           + " WHERE membership.joinDate>{2} AND not(person=friend)"
           + " WITH DISTINCT friend, forum"
-          + " OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:post)<-[:CONTAINER_OF]-(forum)"
+          + " OPTIONAL MATCH (friend)<-[:hasCreator]-(post:post)<-[:containerOf]-(forum)"
           + " WITH forum, count(post) AS postCount"
           + " RETURN"
           + "   forum.title AS forumName,"
           + "   postCount"
-          + " ORDER BY postCount DESC, toInt(forum.id) ASC"
+          + " ORDER BY postCount DESC, toInt(forum.iid) ASC"
           + " LIMIT {3}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : " + operation.minDate().getTime() + ", "
           + "\"3\" : " + operation.limit()
           + " }";
@@ -643,21 +644,21 @@ public class Neo4jDb extends Db {
 
       String statement =
           "   MATCH"
-          + "   (person:person {id:{1}})-[:KNOWS*1..2]-(friend:person),"
-          + "   (friend)<-[:HAS_CREATOR]-(friendPost:post)-[:HAS_TAG]->(knownTag:tag {name:{2}})"
+          + "   (person:person {iid:{1}})-[:knows*1..2]-(friend:person),"
+          + "   (friend)<-[:hasCreator]-(friendPost:post)-[:hasTag]->(knownTag:tag {name:{2}})"
           + " WHERE not(person=friend)"
-          + " MATCH (friendPost)-[:HAS_TAG]->(commonTag:tag)"
+          + " MATCH (friendPost)-[:hasTag]->(commonTag:tag)"
           + " WHERE not(commonTag=knownTag)"
           + " WITH DISTINCT commonTag, knownTag, friend"
-          + " MATCH (commonTag)<-[:HAS_TAG]-(commonPost:post)-[:HAS_TAG]->(knownTag)"
-          + " WHERE (commonPost)-[:HAS_CREATOR]->(friend)"
+          + " MATCH (commonTag)<-[:hasTag]-(commonPost:post)-[:hasTag]->(knownTag)"
+          + " WHERE (commonPost)-[:hasCreator]->(friend)"
           + " RETURN"
           + "   commonTag.name AS tagName,"
           + "   count(commonPost) AS postCount"
           + " ORDER BY postCount DESC, tagName ASC"
           + " LIMIT {3}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : \"" + operation.tagName() + "\", "
           + "\"3\" : " + operation.limit()
           + " }";
@@ -706,29 +707,29 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person:person {id:{1}})<-[:HAS_CREATOR]-(message)<-[like:LIKES]-(liker:person)"
+          "   MATCH (person:person {iid:{1}})<-[:hasCreator]-(message)<-[like:likes]-(liker:person)"
           + " WITH liker, message, like.creationDate AS likeTime, person"
-          + " ORDER BY likeTime DESC, toInt(message.id) ASC"
+          + " ORDER BY likeTime DESC, toInt(message.iid) ASC"
           + " WITH"
           + "   liker,"
           + "   head(collect({msg: message, likeTime: likeTime})) AS latestLike,"
           + "   person"
           + " RETURN"
-          + "   liker.id AS personId,"
+          + "   liker.iid AS personId,"
           + "   liker.firstName AS personFirstName,"
           + "   liker.lastName AS personLastName,"
           + "   latestLike.likeTime AS likeTime,"
-          + "   latestLike.msg.id AS messageId,"
+          + "   latestLike.msg.iid AS messageId,"
           + "   CASE has(latestLike.msg.content)"
           + "     WHEN true THEN latestLike.msg.content"
           + "     ELSE latestLike.msg.imageFile"
           + "   END AS messageContent,"
           + "   latestLike.likeTime - latestLike.msg.creationDate AS latencyAsMilli,"
-          + "   not((liker)-[:KNOWS]-(person)) AS isNew"
+          + "   not((liker)-[:knows]-(person)) AS isNew"
           + " ORDER BY likeTime DESC, toInt(personId) ASC"
           + " LIMIT {2}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : " + operation.limit()
           + " }";
 
@@ -741,11 +742,11 @@ public class Neo4jDb extends Db {
         JsonArray row = results.get(0).getRow(i);
         resultList.add(
             new LdbcQuery7Result(
-                Long.decode(row.getString(0)),
+                DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getString(2),
                 row.getJsonNumber(3).longValue(),
-                Long.decode(row.getString(4)),
+                DbHelper.getSNBId(row.getString(4)),
                 row.getString(5),
                 (int) (row.getJsonNumber(6).longValue() / (1000l * 60l)),
                 row.getBoolean(7)));
@@ -779,18 +780,18 @@ public class Neo4jDb extends Db {
 
       String statement =
           "   MATCH"
-          + "   (start:person {id:{1}})<-[:HAS_CREATOR]-()<-[:REPLY_OF]-(comment:comment)-[:HAS_CREATOR]->(person:person)"
+          + "   (start:person {iid:{1}})<-[:hasCreator]-()<-[:replyOf]-(comment:comment)-[:hasCreator]->(person:person)"
           + " RETURN"
-          + "   person.id AS personId,"
+          + "   person.iid AS personId,"
           + "   person.firstName AS personFirstName,"
           + "   person.lastName AS personLastName,"
           + "   comment.creationDate AS commentCreationDate,"
-          + "   comment.id AS commentId,"
+          + "   comment.iid AS commentId,"
           + "   comment.content AS commentContent"
           + " ORDER BY commentCreationDate DESC, toInt(commentId) ASC"
           + " LIMIT {2}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : " + operation.limit()
           + " }";
 
@@ -804,11 +805,11 @@ public class Neo4jDb extends Db {
 
         resultList.add(
             new LdbcQuery8Result(
-                Long.decode(row.getString(0)),
+                DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getString(2),
                 row.getJsonNumber(3).longValue(),
-                Long.decode(row.getString(4)),
+                DbHelper.getSNBId(row.getString(4)),
                 row.getString(5)));
       }
 
@@ -839,22 +840,22 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:person {id:{1}})-[:KNOWS*1..2]-(friend:person)<-[:HAS_CREATOR]-(message)"
+          "   MATCH (:person {iid:{1}})-[:knows*1..2]-(friend:person)<-[:hasCreator]-(message)"
           + " WHERE message.creationDate < {2}"
           + " RETURN DISTINCT"
-          + "   friend.id AS personId,"
+          + "   friend.iid AS personId,"
           + "   friend.firstName AS personFirstName,"
           + "   friend.lastName AS personLastName,"
-          + "   message.id AS messageId,"
+          + "   message.iid AS messageId,"
           + "   CASE has(message.content)"
           + "     WHEN true THEN message.content"
           + "     ELSE message.imageFile"
           + "   END AS messageContent,"
           + "   message.creationDate AS messageCreationDate"
-          + " ORDER BY message.creationDate DESC, toInt(message.id) ASC"
+          + " ORDER BY message.creationDate DESC, toInt(message.iid) ASC"
           + " LIMIT {3}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : " + operation.maxDate().getTime() + ", "
           + "\"3\" : " + operation.limit()
           + " }";
@@ -869,10 +870,10 @@ public class Neo4jDb extends Db {
 
         resultList.add(
             new LdbcQuery9Result(
-                Long.decode(row.getString(0)),
+                DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getString(2),
-                Long.decode(row.getString(3)),
+                DbHelper.getSNBId(row.getString(3)),
                 row.getString(4),
                 row.getJsonNumber(5).longValue()));
       }
@@ -913,22 +914,22 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person:person {id:{1}})-[:KNOWS*2..2]-(friend:person)-[:IS_LOCATED_IN]->(city:place)"
+          "   MATCH (person:person {iid:{1}})-[:knows*2..2]-(friend:person)-[:isLocatedIn]->(city:place)"
           + " WHERE "
           + "   ((friend.birthday_month = {2} AND friend.birthday_day >= 21) OR"
           + "   (friend.birthday_month = ({2}%12)+1 AND friend.birthday_day < 22))"
           + "   AND not(friend=person)"
-          + "   AND not((friend)-[:KNOWS]-(person))"
+          + "   AND not((friend)-[:knows]-(person))"
           + " WITH DISTINCT friend, city, person"
-          + " OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:post)"
+          + " OPTIONAL MATCH (friend)<-[:hasCreator]-(post:post)"
           + " WITH friend, city, collect(post) AS posts, person"
           + " WITH "
           + "   friend,"
           + "   city,"
           + "   length(posts) AS postCount,"
-          + "   length([p IN posts WHERE (p)-[:HAS_TAG]->(:tag)<-[:HAS_INTEREST]-(person)]) AS commonPostCount"
+          + "   length([p IN posts WHERE (p)-[:hasTag]->(:tag)<-[:hasInterest]-(person)]) AS commonPostCount"
           + " RETURN"
-          + "   friend.id AS personId,"
+          + "   friend.iid AS personId,"
           + "   friend.firstName AS personFirstName,"
           + "   friend.lastName AS personLastName,"
           + "   friend.gender AS personGender,"
@@ -937,7 +938,7 @@ public class Neo4jDb extends Db {
           + " ORDER BY commonInterestScore DESC, toInt(personId) ASC"
           + " LIMIT {3}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : " + operation.month() + ", "
           + "\"3\" : " + operation.limit()
           + " }";
@@ -952,7 +953,7 @@ public class Neo4jDb extends Db {
 
         resultList.add(
             new LdbcQuery10Result(
-                Long.decode(row.getString(0)),
+                DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getString(2),
                 row.getInt(5),
@@ -987,13 +988,13 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person:person {id:{1}})-[:KNOWS*1..2]-(friend:person)"
+          "   MATCH (person:person {iid:{1}})-[:knows*1..2]-(friend:person)"
           + " WHERE not(person=friend)"
           + " WITH DISTINCT friend"
-          + " MATCH (friend)-[worksAt:WORK_AT]->(company:organisation)-[:IS_LOCATED_IN]->(:place {name:{3}})"
+          + " MATCH (friend)-[worksAt:workAt]->(company:organisation)-[:isLocatedIn]->(:place {name:{3}})"
           + " WHERE worksAt.workFrom < {2}"
           + " RETURN"
-          + "   friend.id AS friendId,"
+          + "   friend.iid AS friendId,"
           + "   friend.firstName AS friendFirstName,"
           + "   friend.lastName AS friendLastName,"
           + "   company.name AS companyName,"
@@ -1001,7 +1002,7 @@ public class Neo4jDb extends Db {
           + " ORDER BY workFromYear ASC, toInt(friendId) ASC, companyName DESC"
           + " LIMIT {4}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : " + operation.workFromYear() + ", "
           + "\"3\" : \"" + operation.countryName() + "\", "
           + "\"4\" : " + operation.limit()
@@ -1017,7 +1018,7 @@ public class Neo4jDb extends Db {
 
         resultList.add(
             new LdbcQuery11Result(
-                Long.decode(row.getString(0)),
+                DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getString(2),
                 row.getString(3),
@@ -1054,13 +1055,13 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:person {id:{1}})-[:KNOWS]-(friend:person)"
+          "   MATCH (:person {iid:{1}})-[:knows]-(friend:person)"
           + " OPTIONAL MATCH"
-          + "   (friend)<-[:HAS_CREATOR]-(comment:comment)-[:REPLY_OF]->(:post)-[:HAS_TAG]->(tag:tag),"
-          + "   (tag)-[:HAS_TYPE]->(tagClass:tagclass)-[:IS_SUBCLASS_OF*0..]->(baseTagClass:tagclass)"
+          + "   (friend)<-[:hasCreator]-(comment:comment)-[:replyOf]->(:post)-[:hasTag]->(tag:tag),"
+          + "   (tag)-[:hasType]->(tagClass:tagclass)-[:isSubclassOf*0..]->(baseTagClass:tagclass)"
           + " WHERE tagClass.name = {2} OR baseTagClass.name = {2}"
           + " RETURN"
-          + "   friend.id AS friendId,"
+          + "   friend.iid AS friendId,"
           + "   friend.firstName AS friendFirstName,"
           + "   friend.lastName AS friendLastName,"
           + "   collect(DISTINCT tag.name) AS tagNames,"
@@ -1068,7 +1069,7 @@ public class Neo4jDb extends Db {
           + " ORDER BY count DESC, toInt(friendId) ASC"
           + " LIMIT {3}";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : \"" + operation.tagClassName() + "\", "
           + "\"3\" : " + operation.limit()
           + " }";
@@ -1088,7 +1089,7 @@ public class Neo4jDb extends Db {
 
           resultList.add(
               new LdbcQuery12Result(
-                  Long.decode(row.getString(0)),
+                  DbHelper.getSNBId(row.getString(0)),
                   row.getString(1),
                   row.getString(2),
                   tagNames,
@@ -1121,16 +1122,16 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (person1:person {id:{1}}), (person2:person {id:{2}})"
-          + " OPTIONAL MATCH path = shortestPath((person1)-[:KNOWS*..15]-(person2))"
+          "   MATCH (person1:person {iid:{1}}), (person2:person {iid:{2}})"
+          + " OPTIONAL MATCH path = shortestPath((person1)-[:knows*..15]-(person2))"
           + " RETURN"
           + " CASE path IS NULL"
           + "   WHEN true THEN -1"
           + "   ELSE length(path)"
           + " END AS pathLength";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.person1Id() + "\", "
-          + "\"2\" : \"" + operation.person2Id() + "\""
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.person1Id()) + "\", "
+          + "\"2\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.person2Id()) + "\""
           + " }";
 
       // Execute the query and get the results.
@@ -1172,15 +1173,15 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH path = allShortestPaths((person1:person {id:{1}})-[:KNOWS*..15]-(person2:person {id:{2}}))"
+          "   MATCH path = allShortestPaths((person1:person {iid:{1}})-[:knows*..15]-(person2:person {iid:{2}}))"
           + " WITH nodes(path) AS pathNodes"
           + " RETURN"
-          + "   extract(n IN pathNodes | n.id) AS pathNodeIds,"
-          + "   reduce(weight=0.0, idx IN range(1,size(pathNodes)-1) | extract(prev IN [pathNodes[idx-1]] | extract(curr IN [pathNodes[idx]] | weight + length((curr)<-[:HAS_CREATOR]-(:comment)-[:REPLY_OF]->(:post)-[:HAS_CREATOR]->(prev))*1.0 + length((prev)<-[:HAS_CREATOR]-(:comment)-[:REPLY_OF]->(:post)-[:HAS_CREATOR]->(curr))*1.0 + length((prev)-[:HAS_CREATOR]-(:comment)-[:REPLY_OF]-(:comment)-[:HAS_CREATOR]-(curr))*0.5) )[0][0]) AS weight"
+          + "   extract(n IN pathNodes | n.iid) AS pathNodeIds,"
+          + "   reduce(weight=0.0, idx IN range(1,size(pathNodes)-1) | extract(prev IN [pathNodes[idx-1]] | extract(curr IN [pathNodes[idx]] | weight + length((curr)<-[:hasCreator]-(:comment)-[:replyOf]->(:post)-[:hasCreator]->(prev))*1.0 + length((prev)<-[:hasCreator]-(:comment)-[:replyOf]->(:post)-[:hasCreator]->(curr))*1.0 + length((prev)-[:hasCreator]-(:comment)-[:replyOf]-(:comment)-[:hasCreator]-(curr))*0.5) )[0][0]) AS weight"
           + " ORDER BY weight DESC";
       String parameters = "{ "
-          + "\"1\" : \"" + operation.person1Id() + "\", "
-          + "\"2\" : \"" + operation.person2Id() + "\""
+          + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.person1Id()) + "\", "
+          + "\"2\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.person2Id()) + "\""
           + " }";
 
       // Execute the query and get the results.
@@ -1194,7 +1195,7 @@ public class Neo4jDb extends Db {
         List<Long> personIdsInPath = new ArrayList<>();
         if (row.get(0).getValueType() != JsonValue.ValueType.NULL) {
           row.getJsonArray(0).forEach((e) ->
-              personIdsInPath.add(Long.decode(((JsonString) e).getString())));
+              personIdsInPath.add(DbHelper.getSNBId(((JsonString) e).getString())));
         }
 
         resultList.add(
@@ -1231,7 +1232,7 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (n:person {id:{id}})-[:IS_LOCATED_IN]-(p:place)"
+          "   MATCH (n:person {iid:{id}})-[:isLocatedIn]-(p:place)"
           + " RETURN"
           + "   n.firstName AS firstName,"
           + "   n.lastName AS lastName,"
@@ -1240,8 +1241,8 @@ public class Neo4jDb extends Db {
           + "   n.browserUsed AS browserUsed,"
           + "   n.gender AS gender,"
           + "   n.creationDate AS creationDate,"
-          + "   p.id AS cityId";
-      String parameters = "{ \"id\" : \"" + operation.personId() + "\" }";
+          + "   p.iid AS cityId";
+      String parameters = "{ \"id\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\" }";
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -1256,7 +1257,7 @@ public class Neo4jDb extends Db {
                 Long.decode(table.get("birthday")[0]),
                 table.get("locationIp")[0],
                 table.get("browserUsed")[0],
-                Long.decode(table.get("cityId")[0]),
+                DbHelper.getSNBId(table.get("cityId")[0]),
                 table.get("gender")[0],
                 Long.decode(table.get("creationDate")[0]));
 
@@ -1290,23 +1291,23 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (:person {id:{id}})<-[:HAS_CREATOR]-(m)-[:REPLY_OF*0..]->(p:post)"
-          + " MATCH (p)-[:HAS_CREATOR]->(c)"
+          "   MATCH (:person {iid:{id}})<-[:hasCreator]-(m)-[:replyOf*0..]->(p:post)"
+          + " MATCH (p)-[:hasCreator]->(c)"
           + " RETURN"
-          + "   m.id as messageId,"
+          + "   m.iid as messageId,"
           + "   CASE has(m.content)"
           + "     WHEN true THEN m.content"
           + "     ELSE m.imageFile"
           + "   END AS messageContent,"
           + "   m.creationDate AS messageCreationDate,"
-          + "   p.id AS originalPostId,"
-          + "   c.id AS originalPostAuthorId,"
+          + "   p.iid AS originalPostId,"
+          + "   c.iid AS originalPostAuthorId,"
           + "   c.firstName as originalPostAuthorFirstName,"
           + "   c.lastName as originalPostAuthorLastName"
           + " ORDER BY messageCreationDate DESC"
           + " LIMIT {limit}";
       String parameters = "{ "
-          + "\"id\" : \"" + operation.personId() + "\", "
+          + "\"id\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"limit\" : " + operation.limit() + " }";
 
       // Execute the query and get the results.
@@ -1317,11 +1318,11 @@ public class Neo4jDb extends Db {
       List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
       for (int i = 0; i < table.get("messageId").length; i++) {
         result.add(new LdbcShortQuery2PersonPostsResult(
-            Long.decode(table.get("messageId")[i]),
+            DbHelper.getSNBId(table.get("messageId")[i]),
             table.get("messageContent")[i],
             Long.decode(table.get("messageCreationDate")[i]),
-            Long.decode(table.get("originalPostId")[i]),
-            Long.decode(table.get("originalPostAuthorId")[i]),
+            DbHelper.getSNBId(table.get("originalPostId")[i]),
+            DbHelper.getSNBId(table.get("originalPostAuthorId")[i]),
             table.get("originalPostAuthorFirstName")[i],
             table.get("originalPostAuthorLastName")[i]));
       }
@@ -1350,14 +1351,14 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (n:person {id:{id}})-[r:KNOWS]-(friend)"
+          "   MATCH (n:person {iid:{id}})-[r:knows]-(friend)"
           + " RETURN"
-          + "   friend.id AS personId,"
+          + "   friend.iid AS personId,"
           + "   friend.firstName AS firstName,"
           + "   friend.lastName AS lastName,"
           + "   r.creationDate AS friendshipCreationDate"
           + " ORDER BY friendshipCreationDate DESC, toInt(personId) ASC";
-      String parameters = "{ \"id\" : \"" + operation.personId() + "\" }";
+      String parameters = "{ \"id\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\" }";
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -1367,7 +1368,7 @@ public class Neo4jDb extends Db {
       List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
       for (int i = 0; i < table.get("personId").length; i++) {
         result.add(new LdbcShortQuery3PersonFriendsResult(
-            Long.decode(table.get("personId")[i]),
+            DbHelper.getSNBId(table.get("personId")[i]),
             table.get("firstName")[i],
             table.get("lastName")[i],
             Long.decode(table.get("friendshipCreationDate")[i])));
@@ -1396,7 +1397,7 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (m:post {id:{id}})"
+          "   MATCH (m:post {iid:{postid}})"
           + " RETURN"
           + "   CASE has(m.content)"
           + "     WHEN true THEN m.content"
@@ -1404,14 +1405,17 @@ public class Neo4jDb extends Db {
           + "   END AS messageContent,"
           + "   m.creationDate as messageCreationDate"
           + " UNION "
-          + " MATCH (m:comment {id:{id}})"
+          + " MATCH (m:comment {iid:{commentid}})"
           + " RETURN"
           + "   CASE has(m.content)"
           + "     WHEN true THEN m.content"
           + "     ELSE m.imageFile"
           + "   END AS messageContent,"
           + "   m.creationDate as messageCreationDate"    ;
-      String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
+      String parameters = "{ "
+      		+ "\"postid\" : \"" + DbHelper.makeIid(Entity.POST, operation.messageId()) + "\","
+      				+ "\"commentid\" : \"" + DbHelper.makeIid(Entity.COMMENT, operation.messageId()) + "\" }"; 
+    		  
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -1449,22 +1453,24 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (m:post {id:{id}})-[:HAS_CREATOR]->(p:person)"
+          "   MATCH (m:post {iid:{postid}})-[:hasCreator]->(p:person)"
           + " RETURN"
-          + "   p.id AS personId,"
+          + "   p.iid AS personId,"
           + "   p.firstName AS firstName,"
           + "   p.lastName AS lastName"
           + " UNION "
-          + " MATCH (m:comment {id:{id}})-[:HAS_CREATOR]->(p:person)"
+          + " MATCH (m:comment {iid:{commentid}})-[:hasCreator]->(p:person)"
           + " RETURN"
-          + "   p.id AS personId,"
+          + "   p.iid AS personId,"
           + "   p.firstName AS firstName,"
           + "   p.lastName AS lastName";
 
 
 
-      String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
-
+      String parameters = "{ "
+        		+ "\"postid\" : \"" + DbHelper.makeIid(Entity.POST, operation.messageId()) + "\","
+        				+ "\"commentid\" : \"" + DbHelper.makeIid(Entity.COMMENT, operation.messageId()) + "\" }"; 
+      
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
       List<Neo4jCypherResult> results = driver.execAndCommit();
@@ -1473,7 +1479,7 @@ public class Neo4jDb extends Db {
       if (table.get("personId").length > 0) {
         LdbcShortQuery5MessageCreatorResult result =
             new LdbcShortQuery5MessageCreatorResult(
-                Long.decode(table.get("personId")[0]),
+                DbHelper.getSNBId(table.get("personId")[0]),
                 table.get("firstName")[0],
                 table.get("lastName")[0]);
 
@@ -1505,23 +1511,25 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (m:post {id:{id}})-[:REPLY_OF*0..]->(p:post)<-[:CONTAINER_OF]-(f:forum)-[:HAS_MODERATOR]->(mod:person)"
+          "   MATCH (m:post {iid:{postid}})-[:replyOf*0..]->(p:post)<-[:containerOf]-(f:forum)-[:hasModerator]->(mod:person)"
           + " RETURN"
-          + "   f.id AS forumId,"
+          + "   f.iid AS forumId,"
           + "   f.title AS forumTitle,"
-          + "   mod.id AS moderatorId,"
+          + "   mod.iid AS moderatorId,"
           + "   mod.firstName AS moderatorFirstName,"
           + "   mod.lastName AS moderatorLastName"
           + " UNION "
-          + " MATCH (m:comment {id:{id}})-[:REPLY_OF*0..]->(p:post)<-[:CONTAINER_OF]-(f:forum)-[:HAS_MODERATOR]->(mod:person)"
+          + " MATCH (m:comment {iid:{commentid}})-[:replyOf*0..]->(p:post)<-[:containerOf]-(f:forum)-[:hasModerator]->(mod:person)"
           + " RETURN"
-          + "   f.id AS forumId,"
+          + "   f.iid AS forumId,"
           + "   f.title AS forumTitle,"
-          + "   mod.id AS moderatorId,"
+          + "   mod.iid AS moderatorId,"
           + "   mod.firstName AS moderatorFirstName,"
           + "   mod.lastName AS moderatorLastName";
-      String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
-
+      String parameters = "{ "
+        		+ "\"postid\" : \"" + DbHelper.makeIid(Entity.POST, operation.messageId()) + "\","
+        				+ "\"commentid\" : \"" + DbHelper.makeIid(Entity.COMMENT, operation.messageId()) + "\" }"; 
+      
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
       List<Neo4jCypherResult> results = driver.execAndCommit();
@@ -1530,9 +1538,9 @@ public class Neo4jDb extends Db {
       if (table.get("forumId").length > 0) {
         LdbcShortQuery6MessageForumResult result =
             new LdbcShortQuery6MessageForumResult(
-                Long.decode(table.get("forumId")[0]),
+                DbHelper.getSNBId(table.get("forumId")[0]),
                 table.get("forumTitle")[0],
-                Long.decode(table.get("moderatorId")[0]),
+                DbHelper.getSNBId(table.get("moderatorId")[0]),
                 table.get("moderatorFirstName")[0],
                 table.get("moderatorLastName")[0]);
 
@@ -1565,13 +1573,13 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (m:post {id:{id}})<-[:REPLY_OF]-(c:comment)-[:HAS_CREATOR]->(p:person)"
-          + " OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:person)-[r:KNOWS]-(p)"
+          "   MATCH (m:post {iid:{postid}})<-[:replyOf]-(c:comment)-[:hasCreator]->(p:person)"
+          + " OPTIONAL MATCH (m)-[:hasCreator]->(a:person)-[r:knows]-(p)"
           + " RETURN"
-          + "   c.id AS commentId,"
+          + "   c.iid AS commentId,"
           + "   c.content AS commentContent,"
           + "   c.creationDate AS commentCreationDate,"
-          + "   p.id AS replyAuthorId,"
+          + "   p.iid AS replyAuthorId,"
           + "   p.firstName AS replyAuthorFirstName,"
           + "   p.lastName AS replyAuthorLastName,"
           + "   CASE r"
@@ -1580,13 +1588,13 @@ public class Neo4jDb extends Db {
           + "   END AS replyAuthorKnowsOriginalMessageAuthor"
           + " ORDER BY commentCreationDate DESC, toInt(replyAuthorId) ASC"
           + " UNION "
-          + " MATCH (m:comment {id:{id}})<-[:REPLY_OF]-(c:comment)-[:HAS_CREATOR]->(p:person)"
-          + " OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:person)-[r:KNOWS]-(p)"
+          + " MATCH (m:comment {iid:{commentid}})<-[:replyOf]-(c:comment)-[:hasCreator]->(p:person)"
+          + " OPTIONAL MATCH (m)-[:hasCreator]->(a:person)-[r:knows]-(p)"
           + " RETURN"
-          + "   c.id AS commentId,"
+          + "   c.iid AS commentId,"
           + "   c.content AS commentContent,"
           + "   c.creationDate AS commentCreationDate,"
-          + "   p.id AS replyAuthorId,"
+          + "   p.iid AS replyAuthorId,"
           + "   p.firstName AS replyAuthorFirstName,"
           + "   p.lastName AS replyAuthorLastName,"
           + "   CASE r"
@@ -1594,8 +1602,10 @@ public class Neo4jDb extends Db {
           + "     ELSE true"
           + "   END AS replyAuthorKnowsOriginalMessageAuthor"
           + " ORDER BY commentCreationDate DESC, toInt(replyAuthorId) ASC";
-      String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
-
+      String parameters = "{ "
+        		+ "\"postid\" : \"" + DbHelper.makeIid(Entity.POST, operation.messageId()) + "\","
+        				+ "\"commentid\" : \"" + DbHelper.makeIid(Entity.COMMENT, operation.messageId()) + "\" }"; 
+      
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
       List<Neo4jCypherResult> results = driver.execAndCommit();
@@ -1604,10 +1614,10 @@ public class Neo4jDb extends Db {
       List<LdbcShortQuery7MessageRepliesResult> result = new ArrayList<>();
       for (int i = 0; i < table.get("commentId").length; i++) {
         result.add(new LdbcShortQuery7MessageRepliesResult(
-            Long.decode(table.get("commentId")[i]),
+            DbHelper.getSNBId(table.get("commentId")[i]),
             table.get("commentContent")[i],
             Long.decode(table.get("commentCreationDate")[i]),
-            Long.decode(table.get("replyAuthorId")[i]),
+            DbHelper.getSNBId(table.get("replyAuthorId")[i]),
             table.get("replyAuthorFirstName")[i],
             table.get("replyAuthorLastName")[i],
             Boolean.valueOf(
@@ -1657,7 +1667,7 @@ public class Neo4jDb extends Db {
       String statement =
           "   CREATE (p:person {props})";
       String parameters = "{ \"props\" : {"
-          + " \"id\" : \"" + operation.personId() + "\","
+          + " \"iid\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\","
           + " \"firstName\" : \"" + operation.personFirstName() + "\","
           + " \"lastName\" : \"" + operation.personLastName() + "\","
           + " \"gender\" : \"" + operation.gender() + "\","
@@ -1675,17 +1685,17 @@ public class Neo4jDb extends Db {
 
       // Add isLocatedIn and hasInterest relationships.
       statement =
-          "   MATCH (p:person {id:{personId}}),"
-          + "       (c:place {id:{cityId}})"
+          "   MATCH (p:person {iid:{personId}}),"
+          + "       (c:place {iid:{cityId}})"
           + " OPTIONAL MATCH (t:tag)"
-          + " WHERE t.id IN {tagIds}"
+          + " WHERE t.iid IN {tagIds}"
           + " WITH p, c, collect(t) AS tagSet"
-          + " CREATE (p)-[:IS_LOCATED_IN]->(c)"
-          + " FOREACH(t IN tagSet| CREATE (p)-[:HAS_INTEREST]->(t))";
+          + " CREATE (p)-[:isLocatedIn]->(c)"
+          + " FOREACH(t IN tagSet| CREATE (p)-[:hasInterest]->(t))";
       parameters = "{ "
-          + " \"personId\" : \"" + operation.personId() + "\","
-          + " \"cityId\" : \"" + operation.cityId() + "\","
-          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds())
+          + " \"personId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\","
+          + " \"cityId\" : \"" + DbHelper.makeIid(Entity.PLACE, operation.cityId()) + "\","
+          + " \"tagIds\" : " + DbHelper.listToJsonArray(DbHelper.makeIid(Entity.TAG, operation.tagIds()))
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -1696,9 +1706,9 @@ public class Neo4jDb extends Db {
         StringBuilder createBldr = new StringBuilder();
         StringBuilder paramBldr = new StringBuilder();
 
-        matchBldr.append("MATCH (p:person {id:{personId}}), ");
+        matchBldr.append("MATCH (p:person {iid:{personId}}), ");
         createBldr.append("CREATE ");
-        paramBldr.append("{\"personId\" : \"" + operation.personId() + "\", ");
+        paramBldr.append("{\"personId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", ");
 
         for (int i = 0; i < operation.studyAt().size(); i++) {
           Organization org = operation.studyAt().get(i);
@@ -1708,11 +1718,11 @@ public class Neo4jDb extends Db {
             paramBldr.append(", ");
           }
           matchBldr.append(
-              String.format("(u%d:organisation {id:{uId%d}})", i, i));
+              String.format("(u%d:organisation {iid:{uId%d}})", i, i));
           createBldr.append(
-              String.format("(p)-[:STUDY_AT {classYear:{cY%d}}]->(u%d)", i, i));
+              String.format("(p)-[:studyAt {classYear:{cY%d}}]->(u%d)", i, i));
           paramBldr.append(
-              String.format("\"uId%d\" : \"%d\"", i, org.organizationId()));
+              String.format("\"uId%d\" : \"%d\"", i, DbHelper.makeIid(Entity.ORGANISATION, org.organizationId())));
           paramBldr.append(", ");
           paramBldr.append(
               String.format("\"cY%d\" : %d", i, org.year()));
@@ -1732,9 +1742,9 @@ public class Neo4jDb extends Db {
         StringBuilder createBldr = new StringBuilder();
         StringBuilder paramBldr = new StringBuilder();
 
-        matchBldr.append("MATCH (p:person {id:{personId}}), ");
+        matchBldr.append("MATCH (p:person {iid:{personId}}), ");
         createBldr.append("CREATE ");
-        paramBldr.append("{\"personId\" : \"" + operation.personId() + "\", ");
+        paramBldr.append("{\"personId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", ");
 
         for (int i = 0; i < operation.workAt().size(); i++) {
           Organization org = operation.workAt().get(i);
@@ -1744,11 +1754,11 @@ public class Neo4jDb extends Db {
             paramBldr.append(", ");
           }
           matchBldr.append(
-              String.format("(c%d:organisation {id:{cId%d}})", i, i));
+              String.format("(c%d:organisation {iid:{cId%d}})", i, i));
           createBldr.append(
-              String.format("(p)-[:WORK_AT {workFrom:{wF%d}}]->(c%d)", i, i));
+              String.format("(p)-[:workAt {workFrom:{wF%d}}]->(c%d)", i, i));
           paramBldr.append(
-              String.format("\"cId%d\" : \"%d\"", i, org.organizationId()));
+              String.format("\"cId%d\" : \"%s\"", i, DbHelper.makeIid(Entity.ORGANISATION, org.organizationId())));
           paramBldr.append(", ");
           paramBldr.append(
               String.format("\"wF%d\" : %d", i, org.year()));
@@ -1786,12 +1796,12 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (p:person {id:{personId}}),"
-          + "       (m:post {id:{postId}})"
-          + " CREATE (p)-[:LIKES {creationDate:{creationDate}}]->(m)";
+          "   MATCH (p:person {iid:{personId}}),"
+          + "       (m:post {iid:{postId}})"
+          + " CREATE (p)-[:likes {creationDate:{creationDate}}]->(m)";
       String parameters = "{ "
-          + " \"personId\" : \"" + operation.personId() + "\","
-          + " \"postId\" : \"" + operation.postId() + "\","
+          + " \"personId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\","
+          + " \"postId\" : \"" + DbHelper.makeIid(Entity.POST, operation.postId()) + "\","
           + " \"creationDate\" : " + operation.creationDate().getTime()
           + " }";
 
@@ -1822,12 +1832,12 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (p:person {id:{personId}}),"
-          + "       (m:comment {id:{commentId}})"
-          + " CREATE (p)-[:LIKES {creationDate:{creationDate}}]->(m)";
+          "   MATCH (p:person {iid:{personId}}),"
+          + "       (m:comment {iid:{commentId}})"
+          + " CREATE (p)-[:likes {creationDate:{creationDate}}]->(m)";
       String parameters = "{ "
-          + " \"personId\" : \"" + operation.personId() + "\","
-          + " \"commentId\" : \"" + operation.commentId() + "\","
+          + " \"personId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\","
+          + " \"commentId\" : \"" + DbHelper.makeIid(Entity.COMMENT, operation.commentId()) + "\","
           + " \"creationDate\" : " + operation.creationDate().getTime()
           + " }";
 
@@ -1860,7 +1870,7 @@ public class Neo4jDb extends Db {
       String statement =
           "   CREATE (f:forum {props})";
       String parameters = "{ \"props\" : {"
-          + " \"id\" : \"" + operation.forumId() + "\","
+          + " \"iid\" : \"" + DbHelper.makeIid(Entity.FORUM, operation.forumId()) + "\","
           + " \"title\" : \"" + operation.forumTitle() + "\","
           + " \"creationDate\" : " + operation.creationDate().getTime()
           + " } }";
@@ -1869,17 +1879,17 @@ public class Neo4jDb extends Db {
 
       // Add hasModerator and hasTag relationships.
       statement =
-          "   MATCH (f:forum {id:{forumId}}),"
-          + "       (p:person {id:{moderatorId}})"
+          "   MATCH (f:forum {iid:{forumId}}),"
+          + "       (p:person {iid:{moderatorId}})"
           + " OPTIONAL MATCH (t:tag)"
-          + " WHERE t.id IN {tagIds}"
+          + " WHERE t.iid IN {tagIds}"
           + " WITH f, p, collect(t) as tagSet"
-          + " CREATE (f)-[:HAS_MODERATOR]->(p)"
-          + " FOREACH (t IN tagSet| CREATE (f)-[:HAS_TAG]->(t))";
+          + " CREATE (f)-[:hasModerator]->(p)"
+          + " FOREACH (t IN tagSet| CREATE (f)-[:hasTag]->(t))";
       parameters = "{ "
-          + " \"forumId\" : \"" + operation.forumId() + "\","
-          + " \"moderatorId\" : \"" + operation.moderatorPersonId() + "\","
-          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds())
+          + " \"forumId\" : \"" + DbHelper.makeIid(Entity.FORUM, operation.forumId()) + "\","
+          + " \"moderatorId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.moderatorPersonId()) + "\","
+          + " \"tagIds\" : " + DbHelper.listToJsonArray(DbHelper.makeIid(Entity.TAG, operation.tagIds()))
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -1908,12 +1918,12 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (f:forum {id:{forumId}}),"
-          + "       (p:person {id:{personId}})"
-          + " CREATE (f)-[:HAS_MEMBER {joinDate:{joinDate}}]->(p)";
+          "   MATCH (f:forum {iid:{forumId}}),"
+          + "       (p:person {iid:{personId}})"
+          + " CREATE (f)-[:hasMember {joinDate:{joinDate}}]->(p)";
       String parameters = "{ "
-          + " \"forumId\" : \"" + operation.forumId() + "\","
-          + " \"personId\" : \"" + operation.personId() + "\","
+          + " \"forumId\" : \"" + DbHelper.makeIid(Entity.FORUM, operation.forumId()) + "\","
+          + " \"personId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\","
           + " \"joinDate\" : " + operation.joinDate().getTime()
           + " }";
 
@@ -1948,7 +1958,7 @@ public class Neo4jDb extends Db {
       String parameters;
       if (operation.imageFile().length() > 0) {
         parameters = "{ \"props\" : {"
-            + " \"id\" : \"" + operation.postId() + "\","
+            + " \"iid\" : \"" + DbHelper.makeIid(Entity.POST, operation.postId()) + "\","
             + " \"imageFile\" : \"" + operation.imageFile() + "\","
             + " \"creationDate\" : " + operation.creationDate().getTime() + ","
             + " \"locationIP\" : \"" + operation.locationIp() + "\","
@@ -1958,7 +1968,7 @@ public class Neo4jDb extends Db {
             + " } }";
       } else {
         parameters = "{ \"props\" : {"
-            + " \"id\" : \"" + operation.postId() + "\","
+            + " \"iid\" : \"" + DbHelper.makeIid(Entity.POST, operation.postId()) + "\","
             + " \"creationDate\" : " + operation.creationDate().getTime() + ","
             + " \"locationIP\" : \"" + operation.locationIp() + "\","
             + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
@@ -1972,23 +1982,23 @@ public class Neo4jDb extends Db {
 
       // Add hasCreator, containerOf, isLocatedIn, and hasTag relationships.
       statement =
-          "   MATCH (m:post {id:{postId}}),"
-          + "       (p:person {id:{authorId}}),"
-          + "       (f:forum {id:{forumId}}),"
-          + "       (c:place {id:{countryId}})"
+          "   MATCH (m:post {iid:{postId}}),"
+          + "       (p:person {iid:{authorId}}),"
+          + "       (f:forum {iid:{forumId}}),"
+          + "       (c:place {iid:{countryId}})"
           + " OPTIONAL MATCH (t:tag)"
-          + " WHERE t.id IN {tagIds}"
+          + " WHERE t.iid IN {tagIds}"
           + " WITH m, p, f, c, collect(t) as tagSet"
-          + " CREATE (m)-[:HAS_CREATOR]->(p),"
-          + "        (m)<-[:CONTAINER_OF]-(f),"
-          + "        (m)-[:IS_LOCATED_IN]->(c)"
-          + " FOREACH (t IN tagSet| CREATE (m)-[:HAS_TAG]->(t))";
+          + " CREATE (m)-[:hasCreator]->(p),"
+          + "        (m)<-[:containerOf]-(f),"
+          + "        (m)-[:isLocatedIn]->(c)"
+          + " FOREACH (t IN tagSet| CREATE (m)-[:hasTag]->(t))";
       parameters = "{ "
-          + " \"postId\" : \"" + operation.postId() + "\","
-          + " \"authorId\" : \"" + operation.authorPersonId() + "\","
-          + " \"forumId\" : \"" + operation.forumId() + "\","
-          + " \"countryId\" : \"" + operation.countryId() + "\","
-          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds())
+          + " \"postId\" : \"" + DbHelper.makeIid(Entity.POST, operation.postId()) + "\","
+          + " \"authorId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.authorPersonId()) + "\","
+          + " \"forumId\" : \"" + DbHelper.makeIid(Entity.FORUM, operation.forumId()) + "\","
+          + " \"countryId\" : \"" + DbHelper.makeIid(Entity.PLACE, operation.countryId()) + "\","
+          + " \"tagIds\" : " + DbHelper.listToJsonArray(DbHelper.makeIid(Entity.TAG, operation.tagIds()))
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -2020,7 +2030,7 @@ public class Neo4jDb extends Db {
       String statement =
           "   CREATE (c:comment {props})";
       String parameters = "{ \"props\" : {"
-          + " \"id\" : \"" + operation.commentId() + "\","
+          + " \"iid\" : \"" + DbHelper.makeIid(Entity.COMMENT, operation.commentId()) + "\","
           + " \"creationDate\" : " + operation.creationDate().getTime() + ","
           + " \"locationIP\" : \"" + operation.locationIp() + "\","
           + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
@@ -2038,33 +2048,32 @@ public class Neo4jDb extends Db {
         replyOfLabel = "post";
       }
 
-      Long replyOfId;
+      String replyOfId;
       if (operation.replyToCommentId() != -1) {
-        replyOfId = operation.replyToCommentId();
+        replyOfId = DbHelper.makeIid(Entity.COMMENT, operation.replyToCommentId());
       } else {
-        replyOfId = operation.replyToPostId();
+        replyOfId = DbHelper.makeIid(Entity.POST, operation.replyToPostId());
       }
 
       // Add hasCreator, containerOf, isLocatedIn, and hasTag relationships.
       statement =
-          "   MATCH (m:comment {id:{commentId}}),"
-          + "       (p:person {id:{authorId}}),"
-          + "       (r:{replyOfLabel} {id:{replyOfId}}),"
-          + "       (c:place {id:{countryId}})"
+          "   MATCH (m:comment {iid:{commentId}}),"
+          + "       (p:person {iid:{authorId}}),"
+          + "       (r:" + replyOfLabel + " {iid:{replyOfId}}),"
+          + "       (c:place {iid:{countryId}})"
           + " OPTIONAL MATCH (t:tag)"
-          + " WHERE t.id IN {tagIds}"
+          + " WHERE t.iid IN {tagIds}"
           + " WITH m, p, r, c, collect(t) as tagSet"
-          + " CREATE (m)-[:HAS_CREATOR]->(p),"
-          + "        (m)-[:REPLY_OF]->(r),"
-          + "        (m)-[:IS_LOCATED_IN]->(c)"
-          + " FOREACH (t IN tagSet| CREATE (m)-[:HAS_TAG]->(t))";
+          + " CREATE (m)-[:hasCreator]->(p),"
+          + "        (m)-[:replyOf]->(r),"
+          + "        (m)-[:isLocatedIn]->(c)"
+          + " FOREACH (t IN tagSet| CREATE (m)-[:hasTag]->(t))";
       parameters = "{ "
-          + " \"commentId\" : \"" + operation.commentId() + "\","
-          + " \"authorId\" : \"" + operation.authorPersonId() + "\","
+          + " \"commentId\" : \"" + DbHelper.makeIid(Entity.COMMENT, operation.commentId()) + "\","
+          + " \"authorId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.authorPersonId()) + "\","
           + " \"replyOfId\" : \"" + replyOfId + "\","
-          + " \"countryId\" : \"" + operation.countryId() + "\","
-          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds()) + "\","
-          + " \"replyOfLabel\" : " + replyOfLabel
+          + " \"countryId\" : \"" + DbHelper.makeIid(Entity.PLACE, operation.countryId()) + "\","
+          + " \"tagIds\" : " + DbHelper.listToJsonArray(DbHelper.makeIid(Entity.TAG, operation.tagIds())) 
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -2093,12 +2102,12 @@ public class Neo4jDb extends Db {
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
-          "   MATCH (p1:person {id:{person1Id}}),"
-          + "       (p2:person {id:{person2Id}})"
-          + " CREATE (p1)-[:KNOWS {creationDate:{creationDate}}]->(p2)";
+          "   MATCH (p1:person {iid:{person1Id}}),"
+          + "       (p2:person {iid:{person2Id}})"
+          + " CREATE (p1)-[:knows {creationDate:{creationDate}}]->(p2)";
       String parameters = "{ "
-          + " \"person1Id\" : \"" + operation.person1Id() + "\","
-          + " \"person2Id\" : \"" + operation.person2Id() + "\","
+          + " \"person1Id\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.person1Id()) + "\","
+          + " \"person2Id\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.person2Id()) + "\","
           + " \"creationDate\" : " + operation.creationDate().getTime()
           + " }";
 
