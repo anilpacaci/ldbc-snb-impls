@@ -16,7 +16,10 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import net.ellitron.ldbcsnbimpls.interactive.core.Entity;
 
 /**
  * A collection of static methods used as helper methods in the implementation
@@ -26,27 +29,64 @@ import java.util.List;
  */
 public class DbHelper {
 
-  /**
-   * Take a list of Objects and serialize it to a JSON formatted array of
-   * strings.
-   *
-   * @param list List of objects.
-   *
-   * @return Serialized JSON formatted string representing this list of
-   * objects.
-   */
-  public static String listToJsonArray(List<?> list) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("[");
-    for (int i = 0; i < list.size(); i++) {
-      if (i > 0) {
-        sb.append(", \"").append(list.get(i).toString()).append("\"");
-      } else {
-        sb.append("\"").append(list.get(i).toString()).append("\"");
-      }
-    }
-    sb.append("]");
+	/**
+	 * Take a list of Objects and serialize it to a JSON formatted array of
+	 * strings.
+	 *
+	 * @param list
+	 *            List of objects.
+	 *
+	 * @return Serialized JSON formatted string representing this list of
+	 *         objects.
+	 */
+	public static String listToJsonArray(List<?> list) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("[");
+		for (int i = 0; i < list.size(); i++) {
+			if (i > 0) {
+				sb.append(", \"").append(list.get(i).toString()).append("\"");
+			} else {
+				sb.append("\"").append(list.get(i).toString()).append("\"");
+			}
+		}
+		sb.append("]");
 
-    return sb.toString();
-  }
+		return sb.toString();
+	}
+
+	/*
+	 * Returns the original LDBC SNB assigned 64-bit ID of the given vertex
+	 * (this is not the ID that is assigned to the vertex by TitanDB during the
+	 * data loading phase).
+	 */
+	public static Long getSNBId(String v) {
+		return Long.decode(v.split(":")[1]);
+	}
+
+	/*
+	 * Return a String representing the globally unique Iid property on all
+	 * vertices in the graph. This Iid property is a function of both the Entity
+	 * type and the 64-bit LDBC SNB assigned ID to the node (which is only
+	 * unique across vertices of that type).
+	 */
+	public static String makeIid(Entity type, long id) {
+		return type.getName() + ":" + String.valueOf(id);
+	}
+
+	/*
+	 * Return String representing the globally unique Iid property on all
+	 * vertices in the graph. This Iid property is a function of both the Entity
+	 * type and the 64-bit LDBC SNB assigned ID to the node (which is only
+	 * unique across vertices of that type).
+	 */
+	public static List<String> makeIid(Entity type, List<Long> ids) {
+		String name = type.getName();
+		List<String> stringIds = new ArrayList<>(ids.size());
+
+		ids.forEach(id -> {
+			stringIds.add(name + ":" + String.valueOf(id));
+		});
+
+		return stringIds;
+	}
 }
