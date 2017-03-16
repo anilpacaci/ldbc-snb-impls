@@ -332,8 +332,8 @@ public class Neo4jDb extends Db {
             	DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getInt(2),
-                Long.decode(row.getString(3)),
-                Long.decode(row.getString(4)),
+                row.getJsonNumber(3).longValue(),
+                    row.getJsonNumber(4).longValue(),
                 row.getString(5),
                 row.getString(6),
                 row.getString(7),
@@ -366,7 +366,7 @@ public class Neo4jDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = 
+      Neo4jTransactionDriver driver =
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
@@ -386,7 +386,7 @@ public class Neo4jDb extends Db {
           + " LIMIT {3}";
       String parameters = "{ "
           + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
-          + "\"2\" : \"" + operation.maxDate().getTime() + "\", "
+          + "\"2\" : " + operation.maxDate().getTime() + ", "
           + "\"3\" : " + operation.limit()
           + " }";
 
@@ -405,7 +405,7 @@ public class Neo4jDb extends Db {
                 row.getString(2),
                 DbHelper.getSNBId(row.getString(3)),
                 row.getString(4),
-                Long.decode(row.getString(5))));
+                    row.getJsonNumber(5).longValue()));
       }
 
       resultReporter.report(0, resultList, operation);
@@ -433,7 +433,7 @@ public class Neo4jDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = 
+      Neo4jTransactionDriver driver =
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       long periodStart = operation.startDate().getTime();
@@ -474,8 +474,8 @@ public class Neo4jDb extends Db {
           + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"2\" : \"" + operation.countryXName() + "\", "
           + "\"3\" : \"" + operation.countryYName() + "\", "
-          + "\"4\" : \"" + periodStart + "\", "
-          + "\"5\" : \"" + periodEnd + "\", "
+          + "\"4\" : " + periodStart + ", "
+          + "\"5\" : " + periodEnd + ", "
           + "\"6\" : " + operation.limit()
           + " }";
 
@@ -521,7 +521,7 @@ public class Neo4jDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = 
+      Neo4jTransactionDriver driver =
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       long periodStart = operation.startDate().getTime();
@@ -542,8 +542,8 @@ public class Neo4jDb extends Db {
           + " LIMIT {4}";
       String parameters = "{ "
           + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
-          + "\"2\" : \"" + periodStart + "\", "
-          + "\"3\" : \"" + periodEnd + "\", "
+          + "\"2\" : " + periodStart + ", "
+          + "\"3\" : " + periodEnd + ", "
           + "\"4\" : " + operation.limit()
           + " }";
 
@@ -585,7 +585,7 @@ public class Neo4jDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = 
+      Neo4jTransactionDriver driver =
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
@@ -601,7 +601,7 @@ public class Neo4jDb extends Db {
           + " LIMIT {3}";
       String parameters = "{ "
           + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
-          + "\"2\" : \"" + operation.minDate().getTime() + "\", "
+          + "\"2\" : " + operation.minDate().getTime() + ", "
           + "\"3\" : " + operation.limit()
           + " }";
 
@@ -642,7 +642,7 @@ public class Neo4jDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = 
+      Neo4jTransactionDriver driver =
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
@@ -706,7 +706,7 @@ public class Neo4jDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = 
+      Neo4jTransactionDriver driver =
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
@@ -748,7 +748,7 @@ public class Neo4jDb extends Db {
                 DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getString(2),
-                Long.decode(row.getString(3)),
+                    row.getJsonNumber(3).longValue(),
                 DbHelper.getSNBId(row.getString(4)),
                 row.getString(5),
                 (int) (row.getJsonNumber(6).longValue() / (1000l * 60l)),
@@ -778,7 +778,7 @@ public class Neo4jDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = 
+      Neo4jTransactionDriver driver =
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
@@ -811,7 +811,7 @@ public class Neo4jDb extends Db {
                 DbHelper.getSNBId(row.getString(0)),
                 row.getString(1),
                 row.getString(2),
-                Long.decode(row.getString(3)),
+                row.getJsonNumber(3).longValue(),
                 DbHelper.getSNBId(row.getString(4)),
                 row.getString(5)));
       }
@@ -839,7 +839,7 @@ public class Neo4jDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = 
+      Neo4jTransactionDriver driver =
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
@@ -859,7 +859,7 @@ public class Neo4jDb extends Db {
           + " LIMIT {3}";
       String parameters = "{ "
           + "\"1\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
-          + "\"2\" : \"" + operation.maxDate().getTime() + "\", "
+          + "\"2\" : " + operation.maxDate().getTime() + ", "
           + "\"3\" : " + operation.limit()
           + " }";
 
@@ -878,7 +878,7 @@ public class Neo4jDb extends Db {
                 row.getString(2),
                 DbHelper.getSNBId(row.getString(3)),
                 row.getString(4),
-                Long.decode(row.getString(5))));
+                    row.getJsonNumber(5).longValue()));
       }
 
       resultReporter.report(0, resultList, operation);
@@ -1674,8 +1674,8 @@ public class Neo4jDb extends Db {
           + " \"firstName\" : \"" + operation.personFirstName() + "\","
           + " \"lastName\" : \"" + operation.personLastName() + "\","
           + " \"gender\" : \"" + operation.gender() + "\","
-          + " \"birthday\" : \"" + operation.birthday().getTime() + "\","
-          + " \"creationDate\" : \"" + operation.creationDate().getTime() + "\","
+          + " \"birthday\" : " + operation.birthday().getTime() + ","
+          + " \"creationDate\" : " + operation.creationDate().getTime() + ","
           + " \"locationIP\" : \"" + operation.locationIp() + "\","
           + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
           + " \"speaks\" : "
@@ -1805,7 +1805,7 @@ public class Neo4jDb extends Db {
       String parameters = "{ "
           + " \"personId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\","
           + " \"postId\" : \"" + DbHelper.makeIid(Entity.POST, operation.postId()) + "\","
-          + " \"creationDate\" : \"" + operation.creationDate().getTime() + "\" "
+          + " \"creationDate\" : " + operation.creationDate().getTime() + " "
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -1841,7 +1841,7 @@ public class Neo4jDb extends Db {
       String parameters = "{ "
           + " \"personId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\","
           + " \"commentId\" : \"" + DbHelper.makeIid(Entity.COMMENT, operation.commentId()) + "\","
-          + " \"creationDate\" : \"" + operation.creationDate().getTime() + "\""
+          + " \"creationDate\" : " + operation.creationDate().getTime() + ""
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -1875,7 +1875,7 @@ public class Neo4jDb extends Db {
       String parameters = "{ \"props\" : {"
           + " \"iid\" : \"" + DbHelper.makeIid(Entity.FORUM, operation.forumId()) + "\","
           + " \"title\" : \"" + operation.forumTitle() + "\","
-          + " \"creationDate\" : \"" + operation.creationDate().getTime() + "\""
+          + " \"creationDate\" : " + operation.creationDate().getTime() + ""
           + " } }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -1927,7 +1927,7 @@ public class Neo4jDb extends Db {
       String parameters = "{ "
           + " \"forumId\" : \"" + DbHelper.makeIid(Entity.FORUM, operation.forumId()) + "\","
           + " \"personId\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\","
-          + " \"joinDate\" : \"" + operation.joinDate().getTime() + "\""
+          + " \"joinDate\" : " + operation.joinDate().getTime() + ""
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
@@ -1963,7 +1963,7 @@ public class Neo4jDb extends Db {
         parameters = "{ \"props\" : {"
             + " \"iid\" : \"" + DbHelper.makeIid(Entity.POST, operation.postId()) + "\","
             + " \"imageFile\" : \"" + operation.imageFile() + "\","
-            + " \"creationDate\" : \"" + operation.creationDate().getTime() + "\","
+            + " \"creationDate\" : " + operation.creationDate().getTime() + ","
             + " \"locationIP\" : \"" + operation.locationIp() + "\","
             + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
             + " \"language\" : \"" + operation.language() + "\","
@@ -1972,7 +1972,7 @@ public class Neo4jDb extends Db {
       } else {
         parameters = "{ \"props\" : {"
             + " \"iid\" : \"" + DbHelper.makeIid(Entity.POST, operation.postId()) + "\","
-            + " \"creationDate\" : \"" + operation.creationDate().getTime() + "\","
+            + " \"creationDate\" : " + operation.creationDate().getTime() + ","
             + " \"locationIP\" : \"" + operation.locationIp() + "\","
             + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
             + " \"language\" : \"" + operation.language() + "\","
@@ -2034,7 +2034,7 @@ public class Neo4jDb extends Db {
           "   CREATE (c:comment {props})";
       String parameters = "{ \"props\" : {"
           + " \"iid\" : \"" + DbHelper.makeIid(Entity.COMMENT, operation.commentId()) + "\","
-          + " \"creationDate\" : \"" + operation.creationDate().getTime() + "\","
+          + " \"creationDate\" : " + operation.creationDate().getTime() + ","
           + " \"locationIP\" : \"" + operation.locationIp() + "\","
           + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
           + " \"content\" : \"" + operation.content() + "\","
@@ -2111,7 +2111,7 @@ public class Neo4jDb extends Db {
       String parameters = "{ "
           + " \"person1Id\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.person1Id()) + "\","
           + " \"person2Id\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.person2Id()) + "\","
-          + " \"creationDate\" : \"" + operation.creationDate().getTime() + "\""
+          + " \"creationDate\" : " + operation.creationDate().getTime() + ""
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
