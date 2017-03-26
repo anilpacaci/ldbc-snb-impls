@@ -1293,22 +1293,40 @@ public class Neo4jDb extends Db {
       Neo4jTransactionDriver driver = 
           ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
+      // transitive closure disable because of performance reasons
+//      String statement =
+//          "   MATCH (:person {iid:{id}})<-[:hasCreator]-(m)-[:replyOf*0..]->(p:post)"
+//          + " MATCH (p)-[:hasCreator]->(c)"
+//          + " RETURN"
+//          + "   m.iid as messageId,"
+//          + "   CASE has(m.content)"
+//          + "     WHEN true THEN m.content"
+//          + "     ELSE m.imageFile"
+//          + "   END AS messageContent,"
+//          + "   m.creationDate AS messageCreationDate,"
+//          + "   p.iid AS originalPostId,"
+//          + "   c.iid AS originalPostAuthorId,"
+//          + "   c.firstName as originalPostAuthorFirstName,"
+//          + "   c.lastName as originalPostAuthorLastName"
+//          + " ORDER BY messageCreationDate DESC"
+//          + " LIMIT {limit}";
+
       String statement =
-          "   MATCH (:person {iid:{id}})<-[:hasCreator]-(m)-[:replyOf*0..]->(p:post)"
-          + " MATCH (p)-[:hasCreator]->(c)"
-          + " RETURN"
-          + "   m.iid as messageId,"
-          + "   CASE has(m.content)"
-          + "     WHEN true THEN m.content"
-          + "     ELSE m.imageFile"
-          + "   END AS messageContent,"
-          + "   m.creationDate AS messageCreationDate,"
-          + "   p.iid AS originalPostId,"
-          + "   c.iid AS originalPostAuthorId,"
-          + "   c.firstName as originalPostAuthorFirstName,"
-          + "   c.lastName as originalPostAuthorLastName"
-          + " ORDER BY messageCreationDate DESC"
-          + " LIMIT {limit}";
+              "   MATCH (:person {iid:{id}})<-[:hasCreator]-(m)"
+                      + " MATCH (m)-[:hasCreator]->(c)"
+                      + " RETURN"
+                      + "   m.iid as messageId,"
+                      + "   CASE has(m.content)"
+                      + "     WHEN true THEN m.content"
+                      + "     ELSE m.imageFile"
+                      + "   END AS messageContent,"
+                      + "   m.creationDate AS messageCreationDate,"
+                      + "   m.iid AS originalPostId,"
+                      + "   c.iid AS originalPostAuthorId,"
+                      + "   c.firstName as originalPostAuthorFirstName,"
+                      + "   c.lastName as originalPostAuthorLastName"
+                      + " ORDER BY messageCreationDate DESC"
+                      + " LIMIT {limit}";
       String parameters = "{ "
           + "\"id\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\", "
           + "\"limit\" : " + operation.limit() + " }";
