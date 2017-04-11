@@ -1746,7 +1746,7 @@ public class Neo4jDb extends Db {
               String.format("\"uId%d\" : \"%s\"", i, DbHelper.makeIid(Entity.ORGANISATION, org.organizationId())));
           paramBldr.append(", ");
           paramBldr.append(
-              String.format("\"cY%d\" : %d", i, org.year()));
+              String.format("\"cY%d\" : \"%d\"", i, org.year()));
         }
 
         paramBldr.append("}");
