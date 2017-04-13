@@ -74,6 +74,16 @@ public class DbHelper {
 	}
 
 	/*
+	 * Return a String representing the globally unique Iid property on all
+	 * vertices in the graph. This Iid property is a function of both the Entity
+	 * type and the 64-bit LDBC SNB assigned ID to the node (which is only
+	 * unique across vertices of that type).
+	 */
+	public static String makeIid(String label, String id) {
+		return label + ":" + id;
+	}
+
+	/*
 	 * Return String representing the globally unique Iid property on all
 	 * vertices in the graph. This Iid property is a function of both the Entity
 	 * type and the 64-bit LDBC SNB assigned ID to the node (which is only

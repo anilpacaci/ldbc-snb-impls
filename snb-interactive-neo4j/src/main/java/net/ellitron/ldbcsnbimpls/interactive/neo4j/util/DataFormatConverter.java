@@ -85,24 +85,24 @@ public class DataFormatConverter {
   private enum Node {
 
     COMMENT("COMMENT_ID", "iid", "comment", "comment",
-        new String[]{"creationDate", "locationIP", "browserUsed", "content",
+        new String[]{"iid_long", "creationDate", "locationIP", "browserUsed", "content",
           "length"}),
     FORUM("FORUM_ID", "iid", "forum", "forum",
-        new String[]{"title", "creationDate"}),
+        new String[]{"iid_long", "title", "creationDate"}),
     ORGANISATION("ORGANISATION_ID", "iid", "organisation", "organisation",
-        new String[]{"type", "name", "url"}),
+        new String[]{"iid_long", "type", "name", "url"}),
     PERSON("PERSON_ID", "iid", "person", "person",
-        new String[]{"firstName", "lastName", "gender", "birthday",
+        new String[]{"iid_long", "firstName", "lastName", "gender", "birthday",
           "creationDate", "locationIP", "browserUsed", "email", "speaks"}),
     PLACE("PLACE_ID", "iid", "place", "place",
-        new String[]{"name", "url", "type"}),
+        new String[]{"iid_long", "name", "url", "type"}),
     POST("POST_ID", "iid", "post", "post",
-        new String[]{"imageFile", "creationDate", "locationIP", "browserUsed",
+        new String[]{"iid_long", "imageFile", "creationDate", "locationIP", "browserUsed",
           "language", "content", "length"}),
     TAG("TAG_ID", "iid", "tag", "tag",
-        new String[]{"name", "url"}),
+        new String[]{"iid_long", "name", "url"}),
     TAGCLASS("TAGCLASS_ID", "iid", "tagclass", "tagclass",
-        new String[]{"name", "url"});
+        new String[]{"iid_long", "name", "url"});
 
     /*
      * "ID space" for the node (see Neo4j Import Tool documentation). IDs
@@ -248,9 +248,10 @@ public class DataFormatConverter {
 
   static {
     Map<String, String> dataTypeMap = new HashMap<>();
+    dataTypeMap.put("iid_long", "long");
     dataTypeMap.put("birthday", "long");
     dataTypeMap.put("browserUsed", "string");
-    dataTypeMap.put("classYear", "int");
+    dataTypeMap.put("classYear", "string");
     dataTypeMap.put("content", "string");
     dataTypeMap.put("creationDate", "long");
     dataTypeMap.put("email", "string[]");
@@ -267,7 +268,7 @@ public class DataFormatConverter {
     dataTypeMap.put("title", "string");
     dataTypeMap.put("type", "string");
     dataTypeMap.put("url", "string");
-    dataTypeMap.put("workFrom", "int");
+    dataTypeMap.put("workFrom", "string");
 
     propDataTypes = Collections.unmodifiableMap(dataTypeMap);
 
@@ -327,7 +328,7 @@ public class DataFormatConverter {
    */
   private static String serializePropertyValueList(List<String> propList) {
     StringBuilder sb = new StringBuilder();
-    sb.append("\"");
+//    sb.append("\"");
     for (int i = 0; i < propList.size(); i++) {
       // If not first element, start with array separator
       if (i > 0) {
@@ -336,7 +337,7 @@ public class DataFormatConverter {
 
       sb.append(propList.get(i));
     }
-    sb.append("\"");
+//    sb.append("\"");
 
     return sb.toString();
   }
@@ -435,7 +436,7 @@ public class DataFormatConverter {
         String[] colVals = line.split("\\|");
         for (int i = 0; i < colVals.length; i++) {
           if (i > 0) {
-            if (nodeProps.get(i - 1).equals("birthday")) {
+            if (nodeProps.get(i).equals("birthday")) {
               Date birthday = birthdayDateFormat.parse(colVals[i]);
               Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
               cal.setTime(birthday);
@@ -445,13 +446,14 @@ public class DataFormatConverter {
                   String.valueOf(cal.get(Calendar.DAY_OF_MONTH)) + "|");
               outFile.append(
                   String.valueOf(cal.get(Calendar.MONTH) + 1) + "|");
-            } else if (nodeProps.get(i - 1).equals("creationDate")) {
+            } else if (nodeProps.get(i).equals("creationDate")) {
               outFile.append(String.valueOf(
                   creationDateDateFormat.parse(colVals[i]).getTime()) + "|");
             } else {
               outFile.append(colVals[i] + "|");
             }
           } else {
+            outFile.append(DbHelper.makeIid(node.getNeoLabel(), colVals[i]) + "|");
             outFile.append(colVals[i] + "|");
           }
         }
@@ -573,8 +575,12 @@ public class DataFormatConverter {
                 } else {
                   outFile.append(colVals[i] + "|");
                 }
+              } else if (i == 0){
+                // source id
+                outFile.append(DbHelper.makeIid(srcNode.getNeoLabel(),colVals[i] ) + "|");
               } else {
-                outFile.append(colVals[i] + "|");
+                // destination id
+                outFile.append(DbHelper.makeIid(dstNode.getNeoLabel(),colVals[i] ) + "|");
               }
             }
 
