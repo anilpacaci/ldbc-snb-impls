@@ -162,7 +162,7 @@ public class Neo4jDb extends Db {
     registerOperationHandler(LdbcQuery10.class,
         LdbcQuery10Handler.class);
     registerOperationHandler(LdbcQuery11.class,
-        LdbcQuery11Handler.class);
+        LdbcFakeQuery11Handler.class);
     registerOperationHandler(LdbcQuery12.class,
         LdbcQuery12Handler.class);
     registerOperationHandler(LdbcQuery13.class,
@@ -962,6 +962,55 @@ public class Neo4jDb extends Db {
                 row.getInt(5),
                 row.getString(3),
                 row.getString(4)));
+      }
+
+      resultReporter.report(0, resultList, operation);
+    }
+  }
+
+  /**
+   * Given a start Person, retrieve all of their friends, and the date at which
+   * they became friends. Order results descending by friendship creation date,
+   * then ascending by friend identifier.[1]
+   */
+  public static class LdbcFakeQuery11Handler implements
+      OperationHandler<LdbcQuery11, DbConnectionState> {
+
+    private static final Logger logger =
+        LoggerFactory.getLogger(LdbcFakeQuery11Handler.class);
+
+    @Override
+    public void executeOperation(LdbcQuery11 operation,
+        DbConnectionState dbConnectionState,
+        ResultReporter resultReporter) throws DbException {
+
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
+
+      String statement =
+          "   MATCH (n:person {iid:{id}})-[r:knows]-(friend)"
+          + " RETURN"
+          + "   friend.iid AS personId,"
+          + "   friend.firstName AS firstName,"
+          + "   friend.lastName AS lastName,"
+          + "   r.creationDate AS friendshipCreationDate"
+          + " ORDER BY friendshipCreationDate DESC, toInt(personId) ASC";
+      String parameters = "{ \"id\" : \"" + DbHelper.makeIid(Entity.PERSON, operation.personId()) + "\" }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      Map<String, String[]> table = results.get(0).toMap();
+      List<LdbcQuery11Result> resultList = new ArrayList<>();
+      for (int i = 0; i < table.get("personId").length; i++) {
+        resultList.add(
+            new LdbcQuery11Result(
+                DbHelper.getSNBId(table.get("personId")[i]),
+                table.get("firstName")[i],
+		table.get("lastName")[i],
+		"FAKEORG",
+		2017));
       }
 
       resultReporter.report(0, resultList, operation);
